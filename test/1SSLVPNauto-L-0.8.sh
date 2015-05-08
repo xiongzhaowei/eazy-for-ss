@@ -196,6 +196,35 @@ function install_OpenConnect_VPN_server(){
     show_ocserv    
 }
 
+function install_Oneclientcer(){
+    [ ! -f ${Script_Dir}/ca-key.pem ] && die "${Script_Dir}/ca-key.pem NOT Found."
+    [ ! -f ${Script_Dir}/ca.tmpl ] && die "${Script_Dir}/ca.tmpl NOT Found."
+    [ ! -f ${Script_Dir}/ca-cert.pem ] && die "${Script_Dir}/ca-cert.pem NOT Found."
+    oneclientcert="y"
+    self_signed_ca="y"
+    ca_login="y"    
+    check_Required
+    Default_Ask "$OC_version_latest is the latest,but default version is recommended.Which to choose?" "$Default_oc_version" "oc_version"
+    Default_Ask "The maximum number of routing table rules?" "200" "max_router"
+    Default_Ask "Which port to use for verification?(Tcp-Port)" "999" "ocserv_tcpport_set"
+    Default_Ask "Only use tcp-port or not?(y/n)" "n" "only_tcp_port"
+    if [ "$only_tcp_port" = "n" ]; then
+        fast_Default_Ask "Which port to use for data transmission?(Udp-Port)" "1999" "ocserv_udpport_set"
+    fi
+    press_any_key
+    pre_install && tar_ocserv_install && make_ocserv_ca
+    empty_revocation_list
+    set_ocserv_conf
+    stop_ocserv && start_ocserv
+    ps cax | grep ocserv > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+    print_info "Your install was successful!"
+    else
+    print_warn "Ocserv start failure,ocserv is offline!"
+    print_info "You could use ' bash `basename $0` ri' to forcibly upgrade your ocserv."
+    fi
+}
+
 function check_Required(){
 #check root
     [ $EUID -ne 0 ] && die 'Must be run by root user.'
@@ -295,7 +324,7 @@ function add_a_user(){
     fi
 #get password,if ca login,4 figures default
     if [ "$ca_login" = "y" ] && [ "$self_signed_ca" = "y" ]; then
-        Default_Ask "Input your common name for your p12-cert file." "$(get_random_word 4)" "name_user_ca"
+        Default_Ask "Input a common name for your p12-cert file." "$(get_random_word 4)" "name_user_ca"
         while [ -d /etc/ocserv/CAforOC/user-${name_user_ca} ]; do
             Default_Ask "The common name already exists,change one please!" "$(get_random_word 4)" "name_user_ca"
         done
@@ -599,9 +628,11 @@ function make_ocserv_ca(){
     ogname=${ogname:-ocvpn}
     coname=${coname:-ocvpn}
     fqdnname=${fqdnname:-$ocserv_hostname}
+    oneclientcert=${oneclientcert:-n}
+    [ oneclientcert = "n" ] && {
 #generating the CA 制作自签证书授权中心
-    certtool --generate-privkey --outfile ca-key.pem
-    cat << _EOF_ > ca.tmpl
+        certtool --generate-privkey --outfile ca-key.pem
+        cat << _EOF_ > ca.tmpl
 cn = "$caname"
 organization = "$ogname"
 serial = 1
@@ -611,7 +642,11 @@ signing_key
 cert_signing_key
 crl_signing_key
 _EOF_
-    certtool --generate-self-signed --load-privkey ca-key.pem --template ca.tmpl --outfile ca-cert.pem
+        certtool --generate-self-signed --load-privkey ca-key.pem --template ca.tmpl --outfile ca-cert.pem
+    }
+    [ oneclientcert = "y" ] && {
+        mv ${Script_Dir}/{ca-key.pem,ca.tmpl,ca-cert.pem} ./
+    }
 #generating a local server key-certificate pair 通过自签证书授权中心制作服务器的私钥与证书
     certtool --generate-privkey --outfile server-key.pem
     cat << _EOF_ > server.tmpl
@@ -660,6 +695,11 @@ _EOF_
     openssl pkcs12 -export -inkey user-${name_user_ca}/user-${name_user_ca}-key.pem -in user-${name_user_ca}/user-${name_user_ca}-cert.pem -name "user-${name_user_ca}" -certfile ca-cert.pem -caname "$caname" -out user-${name_user_ca}/user-${name_user_ca}.p12 -passout pass:$password
 #cp to ${Script_Dir}
     cp user-${name_user_ca}/user-${name_user_ca}.p12 ${Script_Dir}
+    empty_revocation_list
+    print_info "Generate client cert ok"
+}
+
+function empty_revocation_list(){
 #make a empty revocation list
     if [ ! -f crl.tmpl ];then
     cat << _EOF_ >crl.tmpl
@@ -668,7 +708,6 @@ crl_number = 1
 _EOF_
     certtool --generate-crl --load-ca-privkey ca-key.pem --load-ca-certificate ca-cert.pem --template crl.tmpl --outfile ../crl.pem
     fi
-    print_info "Generate client cert ok"
 }
 
 #set 设定相关参数
@@ -1009,6 +1048,9 @@ reinstall | ri)
 pc)
     [  -f /etc/ocserv/crl.pem ] && enable_both_login_open_plain
     [ ! -f /etc/ocserv/crl.pem ] && enable_both_login_open_ca
+    ;;
+occ)
+    install_Oneclientcer
     ;;
 help | h)
     help_ocservauto
