@@ -197,9 +197,8 @@ function install_OpenConnect_VPN_server(){
 }
 
 function install_Oneclientcer(){
-    [ ! -f ${Script_Dir}/ca-key.pem ] && die "${Script_Dir}/ca-key.pem NOT Found."
-    [ ! -f ${Script_Dir}/ca.tmpl ] && die "${Script_Dir}/ca.tmpl NOT Found."
     [ ! -f ${Script_Dir}/ca-cert.pem ] && die "${Script_Dir}/ca-cert.pem NOT Found."
+    [ ! -f ${Script_Dir}/ca-key.pem ] && die "${Script_Dir}/ca-key.pem NOT Found."
     oneclientcert="y"
     self_signed_ca="y"
     ca_login="y"    
@@ -213,9 +212,10 @@ function install_Oneclientcer(){
         fast_Default_Ask "Which port to use for data transmission?(Udp-Port)" "1999" "ocserv_udpport_set"
     fi
     press_any_key
-    pre_install && tar_ocserv_install && make_ocserv_ca
-    empty_revocation_list
+    pre_install && tar_ocserv_install
+    make_ocserv_ca
     set_ocserv_conf
+    sed -i 's|^crl =.*|#&|' /etc/ocserv/ocserv.conf
     stop_ocserv && start_ocserv
     ps cax | grep ocserv > /dev/null 2>&1
     if [ $? -eq 0 ]; then
@@ -632,7 +632,7 @@ function make_ocserv_ca(){
     oneclientcert=${oneclientcert:-n}
     [ oneclientcert = "n" ] && {
 #generating the CA 制作自签证书授权中心
-        certtool --generate-privkey --outfile ca-key.pem
+        certtool --generate-privkey --sec-param high --outfile ca-key.pem
         cat << _EOF_ > ca.tmpl
 cn = "$caname"
 organization = "$ogname"
@@ -646,7 +646,7 @@ _EOF_
         certtool --generate-self-signed --load-privkey ca-key.pem --template ca.tmpl --outfile ca-cert.pem
     }
     [ oneclientcert = "y" ] && {
-        mv ${Script_Dir}/{ca-key.pem,ca.tmpl,ca-cert.pem} ./
+        mv ${Script_Dir}/{ca-key.pem,ca-cert.pem} ./
     }
 #generating a local server key-certificate pair 通过自签证书授权中心制作服务器的私钥与证书
     certtool --generate-privkey --outfile server-key.pem
@@ -938,6 +938,20 @@ function upgrade_ocserv(){
     fi
 }
 
+function enable_both_login(){
+    grep '^auth = "plain' /etc/ocserv/ocserv.conf
+    Pc_Ifa="$?"
+    grep '^enable-auth = certificate' /etc/ocserv/ocserv.conf
+    Pc_Ifb="$?"
+    if [ "$Pc_Ifa" = "0" -a "$Pc_Ifb" = "0" ]; then
+        die "You have enabled the plain and the certificate login."
+    fi
+    grep '^auth = "certificate"' /etc/ocserv/ocserv.conf
+    Pc_Var="$?"
+    [ "$Pc_Var" = "0" ] && enable_both_login_open_plain
+    [ "$Pc_Var" != "0" ] && enable_both_login_open_ca
+}
+
 function enable_both_login_open_ca(){
     get_new_userca
     sed -i 's|^[# \t]*\(enable-auth = certificate\)|\1|' /etc/ocserv/ocserv.conf
@@ -988,7 +1002,7 @@ function help_ocservauto(){
     echo
     print_info " reinstall or ri --------------- Force to reinstall your ocserv(Destroy All Data)"
     echo
-    print_info " pc ---------------------------- At the same time,enable the plain login and the certificate login"
+    print_info " pc ---------------------------- At the same time,enable the plain and the certificate login"
     echo
     print_info " help or h --------------------- Show this description"
     print_xxxx
@@ -1047,8 +1061,7 @@ reinstall | ri)
     reinstall_ocserv
     ;;
 pc)
-    [  -f /etc/ocserv/crl.pem ] && enable_both_login_open_plain
-    [ ! -f /etc/ocserv/crl.pem ] && enable_both_login_open_ca
+    enable_both_login
     ;;
 occ)
     install_Oneclientcer
