@@ -206,6 +206,7 @@ function install_Oneclientcer(){
     check_Required
     Default_Ask "$OC_version_latest is the latest,but default version is recommended.Which to choose?" "$Default_oc_version" "oc_version"
     Default_Ask "The maximum number of routing table rules?" "200" "max_router"
+    Default_Ask "Input your own domain for ocserv." "$ocserv_hostname" "fqdnname"
     Default_Ask "Which port to use for verification?(Tcp-Port)" "999" "ocserv_tcpport_set"
     Default_Ask "Only use tcp-port or not?(y/n)" "n" "only_tcp_port"
     if [ "$only_tcp_port" = "n" ]; then
