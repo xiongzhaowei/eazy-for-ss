@@ -198,8 +198,6 @@ function install_OpenConnect_VPN_server(){
 
 function install_Oneclientcer(){
     [ ! -f ${Script_Dir}/ca-cert.pem ] && die "${Script_Dir}/ca-cert.pem NOT Found."
-    [ ! -f ${Script_Dir}/ca-key.pem ] && die "${Script_Dir}/ca-key.pem NOT Found."
-    oneclientcert="y"
     self_signed_ca="y"
     ca_login="y"    
     check_Required
@@ -214,6 +212,8 @@ function install_Oneclientcer(){
     press_any_key
     pre_install && tar_ocserv_install
     make_ocserv_ca
+    rm -rf /etc/ocserv/ca-cert.pem && rm -rf /etc/ocserv/CAforOC/ca*
+    mv ${Script_Dir}/ca-cert.pem /etc/ocserv
     set_ocserv_conf
     sed -i 's|^crl =.*|#&|' /etc/ocserv/ocserv.conf
     stop_ocserv && start_ocserv
@@ -629,11 +629,9 @@ function make_ocserv_ca(){
     ogname=${ogname:-ocvpn}
     coname=${coname:-ocvpn}
     fqdnname=${fqdnname:-$ocserv_hostname}
-    oneclientcert=${oneclientcert:-n}
-    [ oneclientcert = "n" ] && {
 #generating the CA 制作自签证书授权中心
-        certtool --generate-privkey --sec-param high --outfile ca-key.pem
-        cat << _EOF_ > ca.tmpl
+    certtool --generate-privkey --sec-param high --outfile ca-key.pem
+    cat << _EOF_ > ca.tmpl
 cn = "$caname"
 organization = "$ogname"
 serial = 1
@@ -643,11 +641,7 @@ signing_key
 cert_signing_key
 crl_signing_key
 _EOF_
-        certtool --generate-self-signed --load-privkey ca-key.pem --template ca.tmpl --outfile ca-cert.pem
-    }
-    [ oneclientcert = "y" ] && {
-        mv ${Script_Dir}/{ca-key.pem,ca-cert.pem} ./
-    }
+    certtool --generate-self-signed --load-privkey ca-key.pem --template ca.tmpl --outfile ca-cert.pem
 #generating a local server key-certificate pair 通过自签证书授权中心制作服务器的私钥与证书
     certtool --generate-privkey --outfile server-key.pem
     cat << _EOF_ > server.tmpl
