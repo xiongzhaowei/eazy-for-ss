@@ -422,16 +422,16 @@ EOF
 #sources check @ check Required 源检测在前面 for ubuntu+3
 #gnutls-bin于debian7/ubuntu太旧，无法实现证书同属多组模式，即OU只能一个的问题。
     [ "$oc_D_V" = "wheezy" ] || {
-        oc_u_dependencies="libgnutls28-dev libseccomp-dev libhttp-parser-dev"
+        oc_u_dependencies="libgnutls28-dev libseccomp-dev libhttp-parser-dev libkrb5-dev"
         [ "$oc_D_V" = "jessie/sid" ] || oc_u_dependencies="$oc_u_dependencies gnutls-bin libprotobuf-c-dev"
     }
-    oc_dependencies="openssl libkrb5-dev build-essential pkg-config make gcc m4 libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_u_dependencies"
+    oc_dependencies="openssl build-essential pkg-config make gcc m4 libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_u_dependencies"
     TEST_S=""
     Dependencies_install_onebyone
     
 #install dependencies from wheezy-backports
     [ "$oc_D_V" = "wheezy" ] && {
-        oc_dependencies="gnutls-bin libgnutls28-dev libseccomp-dev" && TEST_S="-t wheezy-backports -f --force-yes"
+        oc_dependencies="gnutls-bin libgnutls28-dev libseccomp-dev libkrb5-dev" && TEST_S="-t wheezy-backports -f --force-yes"
         [ "$oc_wheezy_backports" = "n" ] && {
             echo "deb http://ftp.debian.org/debian wheezy-backports main contrib non-free" >> /etc/apt/sources.list
             apt-get update
