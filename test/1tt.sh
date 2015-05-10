@@ -433,22 +433,18 @@ EOF
     [ "$oc_D_V" = "wheezy" ] && {
         [ "$oc_wheezy_backports" = "n" ] && {
             echo "deb http://ftp.debian.org/debian wheezy-backports main contrib non-free" >> /etc/apt/sources.list
+            apt-get update
         }
-        echo "deb http://ftp.debian.org/debian jessie main contrib non-free" >> /etc/apt/sources.list
-        apt-get update
         oc_dependencies="gnutls-bin libgnutls28-dev libseccomp-dev" && TEST_S="-t wheezy-backports -f --force-yes"
         Dependencies_install_onebyone
-        oc_dependencies="libkrb5-dev libhttp-parser-dev libprotobuf-c-dev" && TEST_S="-t jessie -f --force-yes"
-        Dependencies_install_onebyone
-        sed -i '/jessie main contrib non-free/d' /etc/apt/sources.list
         [ "$oc_wheezy_backports" = "n" ] && {
             sed -i '/wheezy-backports/d' /etc/apt/sources.list
-        }
-        apt-get update
+            apt-get update
+        }  
     }
     [ "$oc_D_V" = "jessie/sid" ] && {
         echo "deb http://ftp.debian.org/debian jessie main contrib non-free" >> /etc/apt/sources.list
-        oc_dependencies="gnutls-bin libtasn1-6-dev libtasn1-3-dev libtasn1-3-bin libtasn1-6-dbg libtasn1-bin libtasn1-doc libprotobuf-c-dev" && TEST_S="-t jessie -f --force-yes"
+        oc_dependencies="gnutls-bin libtasn1-6-dev libtasn1-3-dev libtasn1-3-bin libtasn1-6-dbg libtasn1-bin libtasn1-doc" && TEST_S="-t jessie -f --force-yes"
         apt-get update
         Dependencies_install_onebyone
         sed -i '/jessie main contrib non-free/d' /etc/apt/sources.list
