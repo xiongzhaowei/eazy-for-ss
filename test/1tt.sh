@@ -425,22 +425,26 @@ EOF
         oc_u_dependencies="libgnutls28-dev libseccomp-dev libhttp-parser-dev libkrb5-dev"
         [ "$oc_D_V" = "jessie/sid" ] || oc_u_dependencies="$oc_u_dependencies gnutls-bin libprotobuf-c-dev"
     }
-    oc_dependencies="openssl build-essential pkg-config make gcc m4 libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_u_dependencies"
+    oc_dependencies="openssl gperf build-essential pkg-config make gcc m4 libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_u_dependencies"
     TEST_S=""
     Dependencies_install_onebyone
     
 #install dependencies from wheezy-backports
     [ "$oc_D_V" = "wheezy" ] && {
-        oc_dependencies="gnutls-bin libgnutls28-dev libseccomp-dev libkrb5-dev" && TEST_S="-t wheezy-backports -f --force-yes"
         [ "$oc_wheezy_backports" = "n" ] && {
             echo "deb http://ftp.debian.org/debian wheezy-backports main contrib non-free" >> /etc/apt/sources.list
-            apt-get update
         }
+        echo "deb http://ftp.debian.org/debian jessie main contrib non-free" >> /etc/apt/sources.list
+        apt-get update
+        oc_dependencies="gnutls-bin libgnutls28-dev libseccomp-dev" && TEST_S="-t wheezy-backports -f --force-yes"
         Dependencies_install_onebyone
+        oc_dependencies="libkrb5-dev libhttp-parser-dev libprotobuf-c-dev" && TEST_S="-t jessie -f --force-yes"
+        Dependencies_install_onebyone
+        sed -i '/jessie main contrib non-free/d' /etc/apt/sources.list
         [ "$oc_wheezy_backports" = "n" ] && {
             sed -i '/wheezy-backports/d' /etc/apt/sources.list
-            apt-get update
         }
+        apt-get update
     }
     [ "$oc_D_V" = "jessie/sid" ] && {
         echo "deb http://ftp.debian.org/debian jessie main contrib non-free" >> /etc/apt/sources.list
