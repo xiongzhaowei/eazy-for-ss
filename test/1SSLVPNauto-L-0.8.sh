@@ -198,6 +198,7 @@ function install_OpenConnect_VPN_server(){
 
 function install_Oneclientcer(){
     [ ! -f ${Script_Dir}/ca-cert.pem ] && die "${Script_Dir}/ca-cert.pem NOT Found."
+    [ -f ${Script_Dir}/crl.pem ] && CRL_ADD="y"
     self_signed_ca="y"
     ca_login="y"    
     check_Required
@@ -212,10 +213,15 @@ function install_Oneclientcer(){
     press_any_key
     pre_install && tar_ocserv_install
     make_ocserv_ca
-    rm -rf /etc/ocserv/ca-cert.pem && rm -rf /etc/ocserv/CAforOC/ca*
+    rm -rf /etc/ocserv/ca-cert.pem && rm -rf /etc/ocserv/CAforOC
     mv ${Script_Dir}/ca-cert.pem /etc/ocserv
     set_ocserv_conf
-    sed -i 's|^crl =.*|#&|' /etc/ocserv/ocserv.conf
+    [ "$CRL_ADD" = "y" ] || {
+        sed -i 's|^crl =.*|#&|' /etc/ocserv/ocserv.conf
+    }
+    [ "$CRL_ADD" = "y" ] && {
+        mv ${Script_Dir}/crl.pem /etc/ocserv
+    }
     stop_ocserv && start_ocserv
     ps cax | grep ocserv > /dev/null 2>&1
     if [ $? -eq 0 ]; then
