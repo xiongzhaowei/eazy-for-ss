@@ -409,9 +409,6 @@ Pin-Priority: 900
 Package: *
 Pin: release wheezy-backports
 Pin-Priority: 90
-Package: *
-Pin: release jessie
-Pin-Priority: 60
 EOF
     cat > /etc/apt/apt.conf.d/77ocserv<<'EOF'
 APT::Install-Recommends "false";
