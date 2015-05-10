@@ -774,7 +774,7 @@ function two_group_set(){
 #    sed -i 's|^[# \t]*\(default-select-group = \).*|\1Default|' /etc/ocserv/ocserv.conf
     sed -i 's|^[# \t]*\(auto-select-group = \).*|\1false|' /etc/ocserv/ocserv.conf
     sed -i 's|^[# \t]*\(config-per-group = \).*|\1/etc/ocserv/config-per-group|' /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(default-group-config = \).*|\1/etc/ocserv/defaults/group.conf|' /etc/ocserv/ocserv.conf
+#    sed -i 's|^[# \t]*\(default-group-config = \).*|\1/etc/ocserv/defaults/group.conf|' /etc/ocserv/ocserv.conf
 }
 
 function plain_login_set(){
