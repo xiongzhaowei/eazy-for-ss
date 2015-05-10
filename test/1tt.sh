@@ -418,8 +418,9 @@ APT::Get::Install-Recommends "false";
 APT::Get::Install-Suggests "false";
 EOF
 #sources check @ check Required 源检测在前面 for ubuntu+3
-    [ "$oc_D_V" = "wheezy" ] || oc_u_dependencies="libgnutls28-dev libseccomp-dev libhttp-parser-dev"
-    oc_dependencies="openssl build-essential pkg-config make gcc m4 gnutls-bin libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_u_dependencies"
+#gnutls-bin于debian7太旧，无法实现证书同属多组模式，即OU只能一个的问题。
+    [ "$oc_D_V" = "wheezy" ] || oc_u_dependencies="gnutls-bin libgnutls28-dev libseccomp-dev libhttp-parser-dev"
+    oc_dependencies="openssl build-essential pkg-config make gcc m4 libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_u_dependencies"
     TEST_S=""
     Dependencies_install_onebyone
 #add test source 
