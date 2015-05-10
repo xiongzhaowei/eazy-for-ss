@@ -254,7 +254,7 @@ function check_Required(){
     }
     cat /etc/issue|grep -i 'debian' > /dev/null 2>&1 || {
         print_info "Only test on ubuntu 14.04"
-        oc_D_V="$(cat /etc/debian_version | cut -d/ -f1)"
+        oc_D_V="$(cat /etc/debian_version)"
     }
 #check install 防止重复安装
     [ -f /usr/sbin/ocserv ] && die "Ocserv has been installed."
@@ -418,18 +418,25 @@ APT::Get::Install-Recommends "false";
 APT::Get::Install-Suggests "false";
 EOF
 #sources check @ check Required 源检测在前面 for ubuntu+3
-#gnutls-bin于debian7太旧，无法实现证书同属多组模式，即OU只能一个的问题。
-    [ "$oc_D_V" = "wheezy" ] || oc_u_dependencies="gnutls-bin libgnutls28-dev libseccomp-dev libhttp-parser-dev"
-    oc_dependencies="openssl build-essential pkg-config make gcc m4 libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_u_dependencies"
+#gnutls-bin于debian7/ubuntu太旧，无法实现证书同属多组模式，即OU只能一个的问题。
+    [ "$oc_D_V" = "wheezy" ] || {
+        oc_u_dependencies="libgnutls28-dev libseccomp-dev libhttp-parser-dev"
+        [ "$oc_D_V" = "jessie/sid" ] || oc_u_dependencies="$oc_u_dependencies libprotobuf-c-dev"
+    }
+    oc_dependencies="openssl libkrb5-dev build-essential pkg-config make gcc m4 gnutls-bin libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_u_dependencies"
     TEST_S=""
     Dependencies_install_onebyone
-#add test source 
     echo "deb http://ftp.debian.org/debian wheezy-backports main contrib non-free" >> /etc/apt/sources.list
 #install dependencies from wheezy-backports
     [ "$oc_D_V" = "wheezy" ] && {
         oc_dependencies="gnutls-bin libgnutls28-dev libseccomp-dev" && TEST_S="-t wheezy-backports -f --force-yes"
         apt-get update
         Dependencies_install_onebyone
+    }
+    [ "$oc_D_V" = "jessie/sid" ] && {
+        oc_dependencies="gnutls-bin libtasn1-6-dev libtasn1-3-dev libtasn1-3-bin libtasn1-6-dbg libtasn1-bin libtasn1-doc" && TEST_S="-t wheezy-backports -f --force-yes"
+        apt-get update
+        Dependencies_install_onebyone        
     }
 #install freeradius-client-1.1.7
     tar_freeradius_client_install
@@ -443,6 +450,7 @@ EOF
     rm -f /etc/apt/preferences.d/my_ocserv_preferences
     rm -f /etc/apt/apt.conf.d/77ocserv
     [ "$oc_D_V" = "wheezy" ] && apt-get update
+    [ "$oc_D_V" = "jessie/sid" ] && apt-get update
     print_info "Dependencies  ok"
 }
 
@@ -1037,7 +1045,8 @@ CONFIG_PATH_VARS="${Script_Dir}/vars_ocservauto"
 OC_CONF_NET_DOC="https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/ocservauto"
 #推荐的默认版本
 Default_oc_version="0.10.4"
-open_two_group="n"
+#开启分组模式，证书以及用户名登录都会采取。
+open_two_group="y"
 
 
 #Initialization step
