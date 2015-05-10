@@ -667,6 +667,48 @@ _EOF_
     print_info "Self-signed CA for ocserv ok"
 }
 
+function make_ocserv_ca(){
+    print_info "Generating Self-signed CA..."
+#all in one doc
+    cd /etc/ocserv/CAforOC
+#Self-signed CA set
+#ca's name#organization name#company name#server's FQDN
+    caname=${caname:-ocvpn}
+    ogname=${ogname:-ocvpn}
+    coname=${coname:-ocvpn}
+    fqdnname=${fqdnname:-$ocserv_hostname}
+#generating the CA 制作自签证书授权中心
+    openssl genrsa -out ca-key.pem 4096
+    cat << _EOF_ > ca.tmpl
+cn = "$caname"
+organization = "$ogname"
+serial = 1
+expiration_days = 7777
+ca
+signing_key
+cert_signing_key
+crl_signing_key
+_EOF_
+    certtool --generate-self-signed --hash SHA256 --load-privkey ca-key.pem --template ca.tmpl --outfile ca-cert.pem
+#generating a local server key-certificate pair 通过自签证书授权中心制作服务器的私钥与证书
+    openssl genrsa -out server-key.pem 2048
+    cat << _EOF_ > server.tmpl
+cn = "$fqdnname"
+organization = "$coname"
+serial = 2
+expiration_days = 7777
+signing_key
+encryption_key
+tls_www_server
+_EOF_
+    certtool --generate-certificate --hash SHA256 --load-privkey server-key.pem --load-ca-certificate ca-cert.pem --load-ca-privkey ca-key.pem --template server.tmpl --outfile server-cert.pem
+    [ ! -f server-cert.pem ] && die "server-cert.pem NOT Found , make failure!"
+    [ ! -f server-key.pem ] && die "server-key.pem NOT Found , make failure!"
+    cp server-cert.pem /etc/ocserv && cp server-key.pem /etc/ocserv
+    cp ca-cert.pem /etc/ocserv
+    print_info "Self-signed CA for ocserv ok"
+}
+
 function ca_login_ocserv(){
 #make a client cert
     print_info "Generating a client cert..."
@@ -684,16 +726,17 @@ function ca_login_ocserv(){
     cat << _EOF_ > user-${name_user_ca}/user.tmpl
 cn = "${name_user_ca}"
 unit = "Route"
+uid ="${name_user_ca}"
 expiration_days = ${oc_ex_days}
 signing_key
 tls_www_client
 _EOF_
 #user key
-    certtool --generate-privkey --outfile user-${name_user_ca}/user-${name_user_ca}-key.pem
+    certtool --generate-privkey --sec-param high --outfile user-${name_user_ca}/user-${name_user_ca}-key.pem
 #user cert
-    certtool --generate-certificate --load-privkey user-${name_user_ca}/user-${name_user_ca}-key.pem --load-ca-certificate ca-cert.pem --load-ca-privkey ca-key.pem --template user-${name_user_ca}/user.tmpl --outfile user-${name_user_ca}/user-${name_user_ca}-cert.pem
+    certtool --generate-certificate --hash SHA256 --load-privkey user-${name_user_ca}/user-${name_user_ca}-key.pem --load-ca-certificate ca-cert.pem --load-ca-privkey ca-key.pem --template user-${name_user_ca}/user.tmpl --outfile user-${name_user_ca}/user-${name_user_ca}-cert.pem
 #p12
-    openssl pkcs12 -export -inkey user-${name_user_ca}/user-${name_user_ca}-key.pem -in user-${name_user_ca}/user-${name_user_ca}-cert.pem -name "user-${name_user_ca}" -certfile ca-cert.pem -caname "$caname" -out user-${name_user_ca}/user-${name_user_ca}.p12 -passout pass:$password
+    openssl pkcs12 -export -inkey user-${name_user_ca}/user-${name_user_ca}-key.pem -in user-${name_user_ca}/user-${name_user_ca}-cert.pem -name "${name_user_ca}" -certfile ca-cert.pem -caname "$caname" -out user-${name_user_ca}/user-${name_user_ca}.p12 -passout pass:$password
 #cp to ${Script_Dir}
     cp user-${name_user_ca}/user-${name_user_ca}.p12 ${Script_Dir}
     empty_revocation_list
