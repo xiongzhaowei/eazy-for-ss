@@ -264,7 +264,7 @@ function check_Required(){
     if [ $? -ne 0 ]; then
         oc_wheezy_backports="n"
      else
-        sed -i '/wheezy-backports/d' /etc/apt/sources.list
+        oc_wheezy_backports="y"
     fi
     print_info "Sources ok"
 #install base-tools 
@@ -410,6 +410,8 @@ Package: *
 Pin: release wheezy-backports
 Pin-Priority: 90
 Package: *
+Pin: release jessie
+Pin-Priority: 60
 EOF
     cat > /etc/apt/apt.conf.d/77ocserv<<'EOF'
 APT::Install-Recommends "false";
@@ -421,22 +423,28 @@ EOF
 #gnutls-bin于debian7/ubuntu太旧，无法实现证书同属多组模式，即OU只能一个的问题。
     [ "$oc_D_V" = "wheezy" ] || {
         oc_u_dependencies="libgnutls28-dev libseccomp-dev libhttp-parser-dev"
-        [ "$oc_D_V" = "jessie/sid" ] || oc_u_dependencies="$oc_u_dependencies libprotobuf-c-dev"
+        [ "$oc_D_V" = "jessie/sid" ] || oc_u_dependencies="$oc_u_dependencies gnutls-bin libprotobuf-c-dev"
     }
-    oc_dependencies="openssl libkrb5-dev build-essential pkg-config make gcc m4 gnutls-bin libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_u_dependencies"
+    oc_dependencies="openssl libkrb5-dev build-essential pkg-config make gcc m4 libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_u_dependencies"
     TEST_S=""
     Dependencies_install_onebyone
-    echo "deb http://ftp.debian.org/debian wheezy-backports main contrib non-free" >> /etc/apt/sources.list
+    
 #install dependencies from wheezy-backports
     [ "$oc_D_V" = "wheezy" ] && {
+        [ "$oc_wheezy_backports" = "n" ] && echo "deb http://ftp.debian.org/debian wheezy-backports main contrib non-free" >> /etc/apt/sources.list
         oc_dependencies="gnutls-bin libgnutls28-dev libseccomp-dev" && TEST_S="-t wheezy-backports -f --force-yes"
         apt-get update
         Dependencies_install_onebyone
+        [ "$oc_wheezy_backports" = "n" ] && sed -i '/wheezy-backports/d' /etc/apt/sources.list
+        apt-get update
     }
     [ "$oc_D_V" = "jessie/sid" ] && {
-        oc_dependencies="gnutls-bin libtasn1-6-dev libtasn1-3-dev libtasn1-3-bin libtasn1-6-dbg libtasn1-bin libtasn1-doc" && TEST_S="-t wheezy-backports -f --force-yes"
+        echo "deb http://ftp.debian.org/debian jessie main contrib non-free" >> /etc/apt/sources.list
+        oc_dependencies="gnutls-bin libtasn1-6-dev libtasn1-3-dev libtasn1-3-bin libtasn1-6-dbg libtasn1-bin libtasn1-doc" && TEST_S="-t jessie -f --force-yes"
         apt-get update
-        Dependencies_install_onebyone        
+        Dependencies_install_onebyone
+        sed -i '/jessie main contrib non-free/d' /etc/apt/sources.list
+        apt-get update
     }
 #install freeradius-client-1.1.7
     tar_freeradius_client_install
@@ -444,13 +452,9 @@ EOF
 #libprotobuf-c-dev libhttp-parser-dev
 #lz4
     tar_lz4_install
-#if sources del 如果本来没有测试源便删除
-    [ "$oc_wheezy_backports" = "n" ] && sed -i '/wheezy-backports/d' /etc/apt/sources.list
 #keep update
     rm -f /etc/apt/preferences.d/my_ocserv_preferences
     rm -f /etc/apt/apt.conf.d/77ocserv
-    [ "$oc_D_V" = "wheezy" ] && apt-get update
-    [ "$oc_D_V" = "jessie/sid" ] && apt-get update
     print_info "Dependencies  ok"
 }
 
