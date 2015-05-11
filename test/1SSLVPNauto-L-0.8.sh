@@ -707,13 +707,14 @@ signing_key
 tls_www_client
 _EOF_
 #user key
+    [ "$open_two_group" = "y" ] && sed -i '/^#//' user-${name_user_ca}/user.tmpl
     certtool --generate-privkey --sec-param high --outfile user-${name_user_ca}/user-${name_user_ca}-key.pem
 #user cert
     certtool --generate-certificate --hash SHA256 --load-privkey user-${name_user_ca}/user-${name_user_ca}-key.pem --load-ca-certificate ca-cert.pem --load-ca-privkey ca-key.pem --template user-${name_user_ca}/user.tmpl --outfile user-${name_user_ca}/user-${name_user_ca}-cert.pem
 #p12
     openssl pkcs12 -export -inkey user-${name_user_ca}/user-${name_user_ca}-key.pem -in user-${name_user_ca}/user-${name_user_ca}-cert.pem -name "${name_user_ca}" -certfile ca-cert.pem -caname "$caname" -out user-${name_user_ca}/user-${name_user_ca}.p12 -passout pass:$password
 #cp to ${Script_Dir}
-    cp user-${name_user_ca}/user-${name_user_ca}.p12 ${Script_Dir}
+    cp user-${name_user_ca}/user-${name_user_ca}.p12 ${Script_Dir}/${name_user_ca}.p12
     empty_revocation_list
     print_info "Generate client cert ok"
 }
@@ -1022,6 +1023,8 @@ function help_ocservauto(){
     print_info " reinstall or ri --------------- Force to reinstall your ocserv(Destroy All Data)"
     echo
     print_info " pc ---------------------------- At the same time,enable the plain and the certificate login"
+    echo
+    print_info " occ --------------------------- Using a existing CA as the clientcert authentication mechanism"
     echo
     print_info " help or h --------------------- Show this description"
     print_xxxx
