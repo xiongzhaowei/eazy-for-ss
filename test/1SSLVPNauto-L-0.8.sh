@@ -24,6 +24,8 @@
 #   https://www.v2ex.com/t/170472
 #   https://sskaje.me/2014/02/openconnect-ubuntu/
 #   https://github.com/humiaozuzu/ocserv-build/tree/master/config
+#   https://blog.qmz.me/zai-vpsshang-da-jian-anyconnect-vpnfu-wu-qi/
+#   http://www.gnutls.org/manual/gnutls.html#certtool-Invocation
 #===============================================================================================
 
 ###################################################################################################################
@@ -252,7 +254,7 @@ function check_Required(){
     }
     cat /etc/issue|grep -i 'debian' > /dev/null 2>&1 || {
         print_info "Only test on ubuntu 14.04"
-        oc_D_V="$(cat /etc/debian_version | cut -d/ -f1)"
+        oc_D_V="$(cat /etc/debian_version)"
     }
 #check install 防止重复安装
     [ -f /usr/sbin/ocserv ] && die "Ocserv has been installed."
@@ -262,7 +264,7 @@ function check_Required(){
     if [ $? -ne 0 ]; then
         oc_wheezy_backports="n"
      else
-        sed -i '/wheezy-backports/d' /etc/apt/sources.list
+        oc_wheezy_backports="y"
     fi
     print_info "Sources ok"
 #install base-tools 
@@ -407,7 +409,6 @@ Pin-Priority: 900
 Package: *
 Pin: release wheezy-backports
 Pin-Priority: 90
-Package: *
 EOF
     cat > /etc/apt/apt.conf.d/77ocserv<<'EOF'
 APT::Install-Recommends "false";
@@ -416,17 +417,35 @@ APT::Get::Install-Recommends "false";
 APT::Get::Install-Suggests "false";
 EOF
 #sources check @ check Required 源检测在前面 for ubuntu+3
-    [ "$oc_D_V" = "wheezy" ] || oc_u_dependencies="libgnutls28-dev libseccomp-dev libhttp-parser-dev"
-    oc_dependencies="build-essential pkg-config make gcc m4 gnutls-bin libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_u_dependencies"
+#gnutls-bin于debian7/ubuntu太旧，无法实现证书同属多组模式，即OU只能一个的问题。
+    [ "$oc_D_V" = "wheezy" ] || {
+        oc_u_dependencies="libgnutls28-dev libseccomp-dev libhttp-parser-dev libkrb5-dev"
+        [ "$oc_D_V" = "jessie/sid" ] || oc_u_dependencies="$oc_u_dependencies gnutls-bin libprotobuf-c-dev"
+    }
+    oc_dependencies="openssl gperf build-essential pkg-config make gcc m4 libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_u_dependencies"
     TEST_S=""
     Dependencies_install_onebyone
-#add test source 
-    echo "deb http://ftp.debian.org/debian wheezy-backports main contrib non-free" >> /etc/apt/sources.list
+    
 #install dependencies from wheezy-backports
     [ "$oc_D_V" = "wheezy" ] && {
-        oc_dependencies="libgnutls28-dev libseccomp-dev" && TEST_S="-t wheezy-backports -f --force-yes"
+        [ "$oc_wheezy_backports" = "n" ] && {
+            echo "deb http://ftp.debian.org/debian wheezy-backports main contrib non-free" >> /etc/apt/sources.list
+            apt-get update
+        }
+        oc_dependencies="gnutls-bin libgnutls28-dev libseccomp-dev" && TEST_S="-t wheezy-backports -f --force-yes"
+        Dependencies_install_onebyone
+        [ "$oc_wheezy_backports" = "n" ] && {
+            sed -i '/wheezy-backports/d' /etc/apt/sources.list
+            apt-get update
+        }  
+    }
+    [ "$oc_D_V" = "jessie/sid" ] && {
+        echo "deb http://ftp.debian.org/debian jessie main contrib non-free" >> /etc/apt/sources.list
+        oc_dependencies="gnutls-bin libtasn1-6-dev libtasn1-3-dev libtasn1-3-bin libtasn1-6-dbg libtasn1-bin libtasn1-doc" && TEST_S="-t jessie -f --force-yes"
         apt-get update
         Dependencies_install_onebyone
+        sed -i '/jessie main contrib non-free/d' /etc/apt/sources.list
+        apt-get update
     }
 #install freeradius-client-1.1.7
     tar_freeradius_client_install
@@ -434,12 +453,9 @@ EOF
 #libprotobuf-c-dev libhttp-parser-dev
 #lz4
     tar_lz4_install
-#if sources del 如果本来没有测试源便删除
-    [ "$oc_wheezy_backports" = "n" ] && sed -i '/wheezy-backports/d' /etc/apt/sources.list
 #keep update
     rm -f /etc/apt/preferences.d/my_ocserv_preferences
     rm -f /etc/apt/apt.conf.d/77ocserv
-    [ "$oc_D_V" = "wheezy" ] && apt-get update
     print_info "Dependencies  ok"
 }
 
@@ -636,48 +652,6 @@ function make_ocserv_ca(){
     coname=${coname:-ocvpn}
     fqdnname=${fqdnname:-$ocserv_hostname}
 #generating the CA 制作自签证书授权中心
-    certtool --generate-privkey --sec-param high --outfile ca-key.pem
-    cat << _EOF_ > ca.tmpl
-cn = "$caname"
-organization = "$ogname"
-serial = 1
-expiration_days = 7777
-ca
-signing_key
-cert_signing_key
-crl_signing_key
-_EOF_
-    certtool --generate-self-signed --load-privkey ca-key.pem --template ca.tmpl --outfile ca-cert.pem
-#generating a local server key-certificate pair 通过自签证书授权中心制作服务器的私钥与证书
-    certtool --generate-privkey --outfile server-key.pem
-    cat << _EOF_ > server.tmpl
-cn = "$fqdnname"
-organization = "$coname"
-serial = 2
-expiration_days = 7777
-signing_key
-encryption_key
-tls_www_server
-_EOF_
-    certtool --generate-certificate --load-privkey server-key.pem --load-ca-certificate ca-cert.pem --load-ca-privkey ca-key.pem --template server.tmpl --outfile server-cert.pem
-    [ ! -f server-cert.pem ] && die "server-cert.pem NOT Found , make failure!"
-    [ ! -f server-key.pem ] && die "server-key.pem NOT Found , make failure!"
-    cp server-cert.pem /etc/ocserv && cp server-key.pem /etc/ocserv
-    cp ca-cert.pem /etc/ocserv
-    print_info "Self-signed CA for ocserv ok"
-}
-
-function make_ocserv_ca(){
-    print_info "Generating Self-signed CA..."
-#all in one doc
-    cd /etc/ocserv/CAforOC
-#Self-signed CA set
-#ca's name#organization name#company name#server's FQDN
-    caname=${caname:-ocvpn}
-    ogname=${ogname:-ocvpn}
-    coname=${coname:-ocvpn}
-    fqdnname=${fqdnname:-$ocserv_hostname}
-#generating the CA 制作自签证书授权中心
     openssl genrsa -out ca-key.pem 4096
     cat << _EOF_ > ca.tmpl
 cn = "$caname"
@@ -726,6 +700,7 @@ function ca_login_ocserv(){
     cat << _EOF_ > user-${name_user_ca}/user.tmpl
 cn = "${name_user_ca}"
 unit = "Route"
+#unit = "All"
 uid ="${name_user_ca}"
 expiration_days = ${oc_ex_days}
 signing_key
@@ -796,10 +771,10 @@ function two_group_set(){
     sed -i 's|^[# \t]*\(cert-group-oid = \).*|\12.5.4.11|' /etc/ocserv/ocserv.conf
     sed -i 's|^[# \t]*\(select-group = \)group1.*|\1Route|' /etc/ocserv/ocserv.conf
     sed -i 's|^[# \t]*\(select-group = \)group2.*|\1All|' /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(default-select-group = \).*|\1Default|' /etc/ocserv/ocserv.conf
+#    sed -i 's|^[# \t]*\(default-select-group = \).*|\1Default|' /etc/ocserv/ocserv.conf
     sed -i 's|^[# \t]*\(auto-select-group = \).*|\1false|' /etc/ocserv/ocserv.conf
     sed -i 's|^[# \t]*\(config-per-group = \).*|\1/etc/ocserv/config-per-group|' /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(default-group-config = \).*|\1/etc/ocserv/defaults/group.conf|' /etc/ocserv/ocserv.conf
+#    sed -i 's|^[# \t]*\(default-group-config = \).*|\1/etc/ocserv/defaults/group.conf|' /etc/ocserv/ocserv.conf
 }
 
 function plain_login_set(){
@@ -810,7 +785,8 @@ function plain_login_set(){
 function ca_login_set(){
     sed -i 's|^[# \t]*\(ca-cert = \).*|\1/etc/ocserv/ca-cert.pem|' /etc/ocserv/ocserv.conf
     sed -i 's|^[# \t]*\(crl = \).*|\1/etc/ocserv/crl.pem|' /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(cert-user-oid = \).*|\12.5.4.3|' /etc/ocserv/ocserv.conf
+#    sed -i 's|^[# \t]*\(cert-user-oid = \).*|\12\.5\.4\.3|' /etc/ocserv/ocserv.conf
+    sed -i 's|^[# \t]*\(cert-user-oid = \).*|\10\.9\.2342\.19200300\.100\.1\.1|' /etc/ocserv/ocserv.conf
 }
 
 function stop_ocserv(){
@@ -1074,6 +1050,7 @@ CONFIG_PATH_VARS="${Script_Dir}/vars_ocservauto"
 OC_CONF_NET_DOC="https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/ocservauto"
 #推荐的默认版本
 Default_oc_version="0.10.4"
+#开启分组模式，证书以及用户名登录都会采取。
 open_two_group="n"
 
 
