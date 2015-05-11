@@ -786,8 +786,8 @@ function plain_login_set(){
 function ca_login_set(){
     sed -i 's|^[# \t]*\(ca-cert = \).*|\1/etc/ocserv/ca-cert.pem|' /etc/ocserv/ocserv.conf
     sed -i 's|^[# \t]*\(crl = \).*|\1/etc/ocserv/crl.pem|' /etc/ocserv/ocserv.conf
-#    sed -i 's|^[# \t]*\(cert-user-oid = \).*|\12\.5\.4\.3|' /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(cert-user-oid = \).*|\10\.9\.2342\.19200300\.100\.1\.1|' /etc/ocserv/ocserv.conf
+    sed -i 's|^[# \t]*\(cert-user-oid = \).*|\12\.5\.4\.3|' /etc/ocserv/ocserv.conf
+#    sed -i 's|^[# \t]*\(cert-user-oid = \).*|\10\.9\.2342\.19200300\.100\.1\.1|' /etc/ocserv/ocserv.conf
 }
 
 function stop_ocserv(){
@@ -1031,7 +1031,7 @@ function help_ocservauto(){
 }
 ###################################################################################################################
 #main                                                                                                             #
-###################################################################################################################
+##################################################################################################################
 
 #install info
 clear
@@ -1055,7 +1055,6 @@ OC_CONF_NET_DOC="https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/mast
 Default_oc_version="0.10.4"
 #开启分组模式，证书以及用户名登录都会采取。
 open_two_group="n"
-
 
 #Initialization step
 action=$1
