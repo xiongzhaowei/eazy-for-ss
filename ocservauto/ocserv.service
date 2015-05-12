@@ -15,4 +15,3 @@ ExecReload=/bin/kill -HUP $MAINPID
 [Install]
 WantedBy=multi-user.target
 
-#Put this file to /lib/systemd/system
