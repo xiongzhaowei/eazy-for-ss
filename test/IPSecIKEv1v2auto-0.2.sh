@@ -176,7 +176,8 @@ function tar_install(){
     make -j"$(nproc)" && make install
     [ ! -f /usr/sbin/ipsec ] && {
         make clean
-        die "Install failure,check dependencies!"}
+        die "Install failure,check dependencies!"
+    }
     cd ..
     rm -r strongswan-*
     print_info "Install ok"
@@ -612,3 +613,4 @@ getca)
     echo "Usage: `basename $0` {install|getca}"
     ;;
 esac
+:
