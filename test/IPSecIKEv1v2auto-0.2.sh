@@ -276,7 +276,7 @@ conn windows_eap
     keyexchange=ikev2
     ike=aes256-sha1-modp1024!
     esp=aes256-sha1!
-    leftid="C=CN, O=strongSwan, CN=$fqdnname"
+#    leftid="C=CN, O=strongSwan, CN=$fqdnname"
     leftauth=pubkey
     rekey=no
     rightauth=eap-mschapv2
