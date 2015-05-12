@@ -146,3 +146,25 @@ function Check_Udp_Port(){
 # allows script to be run from different directories but always act on the
 # directory of the project (which is where this script is located).
 ROOT_DIR="$(cd "$(dirname $0)"; pwd)";
+#check_install "nano dig lsb_release" "nano dnsutils lsb-release"
+#Check [ nano ] ok
+#Install [ dnsutils ] ok
+#Check [ lsb-release ] ok
+function check_install {
+    exec_name="$1"
+    deb_name="$2"
+    Deb_N=""
+    deb_name=`echo "$deb_name"|sed "s/^${Deb_N}[ \t]*\(.*\)/\1/"`
+    for Exe_N in $exec_name
+        do
+            Deb_N=`echo "$deb_name"|sed 's/^\([^ ]*\).*/\1/'`
+            deb_name=`echo "$deb_name"|sed "s/^${Deb_N}[ \t]*\(.*\)/\1/"`
+            if (which "$Exe_N" > /dev/null 2>&1);then
+                print_info "Check [ $Deb_N ] ok"
+            else
+                DEBIAN_FRONTEND=noninteractive apt-get -qq -y install "$Deb_N"
+                apt-get clean
+                print_info "Install [ $Deb_N ] ok"
+            fi
+        done
+} 
