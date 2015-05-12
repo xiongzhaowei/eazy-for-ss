@@ -538,7 +538,7 @@ function tar_ocserv_install(){
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
 DAEMON=/usr/sbin/ocserv
 PIDFILE=/var/run/ocserv.pid
-DAEMON_ARGS="-c ${LOC_OC_CONF}"
+DAEMON_ARGS="-c /etc/ocserv/ocserv.conf"
 
 # Exit if the package is not installed
 [ -x $DAEMON ] || exit 0
@@ -743,7 +743,7 @@ signing_key
 tls_www_client
 _EOF_
 #user key
-    [ "$open_two_group" = "y" ] && sed -i '/^#//' user-${name_user_ca}/user.tmpl
+    [ "$open_two_group" = "y" ] && sed -i 's/^#//' user-${name_user_ca}/user.tmpl
     certtool --generate-privkey --sec-param high --outfile user-${name_user_ca}/user-${name_user_ca}-key.pem
 #user cert
     certtool --generate-certificate --hash SHA256 --load-privkey user-${name_user_ca}/user-${name_user_ca}-key.pem --load-ca-certificate ca-cert.pem --load-ca-privkey ca-key.pem --template user-${name_user_ca}/user.tmpl --outfile user-${name_user_ca}/user-${name_user_ca}-cert.pem
