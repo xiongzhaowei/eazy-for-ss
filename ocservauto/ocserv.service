@@ -15,3 +15,7 @@ ExecReload=/bin/kill -HUP $MAINPID
 [Install]
 WantedBy=multi-user.target
 
+#Put it to $PATH/lib/systemd/system
+#systemctl daemon-reload
+#systemctl enable ocserv.service
+#systemctl start ocserv.service
