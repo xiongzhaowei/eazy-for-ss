@@ -8,7 +8,6 @@
 #   SSLVPNauto v0.1-A1 For Debian Copyright (C) Alex Fang frjalex@gmail.com released under GNU GPLv2
 #   Date: 2015-05-01
 #   Thanks For
-#   Max Lv (server /etc/init.d/ocserv)
 #   http://www.infradead.org/ocserv/
 #   https://www.stunnel.info  Travis Lee
 #   http://luoqkk.com/ luoqkk
@@ -27,6 +26,7 @@
 #   https://github.com/humiaozuzu/ocserv-build/tree/master/config
 #   https://blog.qmz.me/zai-vpsshang-da-jian-anyconnect-vpnfu-wu-qi/
 #   http://www.gnutls.org/manual/gnutls.html#certtool-Invocation
+#   Max Lv (server /etc/init.d/ocserv)
 #===============================================================================================
 
 ###################################################################################################################
@@ -551,8 +551,8 @@ DAEMON_ARGS=""
 CONFFILE="/etc/ocserv/ocserv.conf"
 PIDFILE=/var/run/$NAME/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
-SERVER_UP="/etc/ocserv/start-ocserv-sysctl.sh"
-SERVER_DOWN="/etc/ocserv/stop-ocserv-sysctl.sh"
+SERVER_UP="/etc/ocserv/ocserv-up.sh"
+SERVER_DOWN="/etc/ocserv/ocserv-down.sh"
 
 # Exit if the package is not installed
 [ -x $DAEMON ] || exit 0
@@ -667,7 +667,7 @@ esac
 :
 EOF
     chmod 755 /etc/init.d/ocserv
-    cat > start-ocserv-sysctl.sh <<'EOF'
+    cat > ocserv-up.sh <<'EOF'
 #!/bin/bash
 
 #vars
@@ -711,11 +711,9 @@ fi
 if !(iptables-save -t mangle | grep -q "$gw_intf_oc (ocserv6)"); then
 iptables -t mangle -A FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -m comment --comment "$gw_intf_oc (ocserv6)" -j TCPMSS --clamp-mss-to-pmtu
 fi
-
-echo "..."
 EOF
-    chmod +x start-ocserv-sysctl.sh
-    cat > stop-ocserv-sysctl.sh <<'EOF'
+    chmod +x ocserv-up.sh
+    cat > ocserv-down.sh <<'EOF'
 #!/bin/bash
 
 # uncomment if you want to turn off IP forwarding
@@ -724,10 +722,8 @@ EOF
 #del iptables
 
 iptables-save | grep 'ocserv' | sed 's/^-A P/iptables -t nat -D P/' | sed 's/^-A FORWARD -p/iptables -t mangle -D FORWARD -p/' | sed 's/^-A/iptables -D/' | bash
-
-echo "..."
 EOF
-    chmod +x stop-ocserv-sysctl.sh
+    chmod +x ocserv-down.sh
     while [ ! -f ocserv.conf ]; do
         wget -c $NET_OC_CONF_DOC/ocserv.conf --no-check-certificate
     done
