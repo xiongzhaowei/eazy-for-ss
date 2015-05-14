@@ -42,5 +42,3 @@ fi
 if !(iptables-save -t mangle | grep -q "$gw_intf_oc (ocserv6)"); then
 iptables -t mangle -A FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -m comment --comment "$gw_intf_oc (ocserv6)" -j TCPMSS --clamp-mss-to-pmtu
 fi
-
-echo "..."
