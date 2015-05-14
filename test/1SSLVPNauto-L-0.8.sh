@@ -260,7 +260,7 @@ function check_Required(){
     apt-get update  -qq
     check_install "curl vim sudo gawk sed wget insserv nano" "curl vim sudo gawk sed wget insserv nano"
     check_install "dig lsb_release" "dnsutils lsb-release"
-    insserv -s  > /dev/null 2>&1 || sudo ln -s /usr/lib/insserv/insserv /sbin/insserv
+    insserv -s  > /dev/null 2>&1 || ln -s /usr/lib/insserv/insserv /sbin/insserv
     print_info "Get base-tools ok"
 #only Debian 7+
     surport_Syscodename || die "Sorry, your system is too old or has not been tested."
@@ -420,9 +420,9 @@ function test_source_install(){
 #install dependencies 安装依赖文件
 function pre_install(){
 #keep kernel 防止某些情况下内核升级
-    echo linux-image-`uname -r` hold | sudo dpkg --set-selections > /dev/null 2>&1
+    echo linux-image-`uname -r` hold | dpkg --set-selections > /dev/null 2>&1
     apt-get upgrade -y
-    echo linux-image-`uname -r` install | sudo dpkg --set-selections > /dev/null 2>&1
+    echo linux-image-`uname -r` install | dpkg --set-selections > /dev/null 2>&1
 #no upgrade from test sources 不升级不安装测试源其他包
     [ ! -d /etc/apt/preferences.d ] && mkdir /etc/apt/preferences.d
     [ ! -d /etc/apt/apt.conf.d ] && mkdir /etc/apt/apt.conf.d
@@ -842,9 +842,9 @@ function set_ocserv_conf(){
         print_info "Enable ocserv service to start during bootup."
         [ "$ocserv_systemd" = "y" ] && {
             systemctl daemon-reload > /dev/null 2>&1
-            systemctl enable ocserv.service > /dev/null 2>&1 || sudo insserv ocserv > /dev/null 2>&1
+            systemctl enable ocserv.service > /dev/null 2>&1 || insserv ocserv > /dev/null 2>&1
         }
-        [ "$ocserv_systemd" = "n" ] && sudo insserv ocserv > /dev/null 2>&1
+        [ "$ocserv_systemd" = "n" ] && insserv ocserv > /dev/null 2>&1
     }
 #add a user ，the plain login 增加一个初始用户，用户密码方式下
     [ "$ca_login" = "n" ] && plain_login_set
