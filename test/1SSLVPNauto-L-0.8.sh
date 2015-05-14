@@ -136,65 +136,75 @@ function fast_Default_Ask(){
     fi
 }
 
+#配置文件$1中是否含有$2
+function character_Test(){
+sed 's/^[ \t]*//' "$1" | grep -v '^#' | grep "$2" > /dev/null 2>&1
+[ $? -eq 0 ] && return 0
+}
+
+#检测安装
+function check_install(){
+    exec_name="$1"
+    deb_name="$2"
+    Deb_N=""
+    deb_name=`echo "$deb_name"|sed "s/^${Deb_N}[ \t]*\(.*\)/\1/"`
+    for Exe_N in $exec_name
+    do
+        Deb_N=`echo "$deb_name"|sed 's/^\([^ ]*\).*/\1/'`
+        deb_name=`echo "$deb_name"|sed "s/^${Deb_N}[ \t]*\(.*\)/\1/"`
+        if (which "$Exe_N" > /dev/null 2>&1);then
+            print_info "Check [ $Deb_N ] ok"
+        else
+            DEBIAN_FRONTEND=noninteractive apt-get -qq -y install "$Deb_N" > /dev/null 2>&1
+            apt-get clean
+            print_info "Install [ $Deb_N ] ok"
+        fi
+    done
+}
+
 ###################################################################################################################
 #core-function                                                                                                    #
 ###################################################################################################################
 
 #多服务器共用一份客户端证书模式以及正常模式下，主服务器的安装主体
 function install_OpenConnect_VPN_server(){
-#check system , get IP and ocversion ,del test sources 检测系统 获取本机公网ip 最新版本 去除测试源
+#get base info and base tools
     check_Required
-
 #custom-configuration or not 自定义安装与否
     fast_Default_Ask "Install ocserv with Custom Configuration?(y/n)" "n" "Custom_config_ocserv"
-    if [ "$Custom_config_ocserv" = "y" ]; then
-        clear
-        print_xxxx
+    clear && print_xxxx
+    [ "$Custom_config_ocserv" = "y" ] && {
         print_info "Install ocserv with custom configuration."
         print_xxxx
         get_Custom_configuration
-    else
-        clear
-        print_xxxx
+    }
+    [ "$Custom_config_ocserv" = "n" ] && {
         print_info "Automatic installation,choose the plain login."
         print_xxxx
-        self_signed_ca="y"
-        ca_login="n"    
-    fi
-
+        self_signed_ca="y" && ca_login="n"
+    }        
 #add a user 增加初始用户
     add_a_user
-
 #press any key to start 任意键开始
     press_any_key
-
 #install dependencies 安装依赖文件
     pre_install
-
 #install ocserv 编译安装软件
     tar_ocserv_install
-
 #make self-signd server-ca 制作服务器自签名证书
-    if [ "$self_signed_ca" = "y" ]; then
-    make_ocserv_ca
-    fi
-
+    [ "$self_signed_ca" = "y" ] && make_ocserv_ca
 #make a client cert 若证书登录则制作客户端证书
-    if [ "$ca_login" = "y" ] && [ "$self_signed_ca" = "y" ]; then
-    ca_login_ocserv
-    fi
-
+    [ "$ca_login" = "y" ] && {
+        [ "$self_signed_ca" = "y" ] && {
+            ca_login_ocserv
+        }
+    }
 #configuration 设定软件相关选项
     set_ocserv_conf
-
 #stop all 关闭所有正在运行的ocserv软件
     stop_ocserv
-
 #no certificate,no start 没有服务器证书则不启动
-    if [ "$self_signed_ca" = "y" ]; then
-    start_ocserv
-    fi
-
+    [ "$self_signed_ca" = "y" ] && start_ocserv
 #show result 显示结果
     show_ocserv    
 }
@@ -203,17 +213,10 @@ function install_OpenConnect_VPN_server(){
 function install_Oneclientcer(){
     [ ! -f ${Script_Dir}/ca-cert.pem ] && die "${Script_Dir}/ca-cert.pem NOT Found."
     [ -f ${Script_Dir}/crl.pem ] && CRL_ADD="y"
-    self_signed_ca="y"
-    ca_login="y"    
+    self_signed_ca="y" && ca_login="y"
     check_Required
-    Default_Ask "$OC_version_latest is the latest,but default version is recommended.Which to choose?" "$Default_oc_version" "oc_version"
-    Default_Ask "The maximum number of routing table rules?" "200" "max_router"
     Default_Ask "Input your own domain for ocserv." "$ocserv_hostname" "fqdnname"
-    Default_Ask "Which port to use for verification?(Tcp-Port)" "999" "ocserv_tcpport_set"
-    Default_Ask "Only use tcp-port or not?(y/n)" "n" "only_tcp_port"
-    if [ "$only_tcp_port" = "n" ]; then
-        fast_Default_Ask "Which port to use for data transmission?(Udp-Port)" "1999" "ocserv_udpport_set"
-    fi
+    get_Custom_configuration_2
     press_any_key
     pre_install && tar_ocserv_install
     make_ocserv_ca
@@ -234,32 +237,6 @@ function install_Oneclientcer(){
     print_warn "Ocserv start failure,ocserv is offline!"
     print_info "You could use ' bash `basename $0` ri' to forcibly upgrade your ocserv."
     fi
-}
-
-#配置文件$1中是否含有$2
-function character_Test(){
-sed 's/^[ \t]*//' "$1" | grep -v '^#' | grep "$2" > /dev/null 2>&1
-[ $? -eq 0 ] && return 0
-}
-
-#检测安装
-function check_install(){
-    exec_name="$1"
-    deb_name="$2"
-    Deb_N=""
-    deb_name=`echo "$deb_name"|sed "s/^${Deb_N}[ \t]*\(.*\)/\1/"`
-    for Exe_N in $exec_name
-    do
-        Deb_N=`echo "$deb_name"|sed 's/^\([^ ]*\).*/\1/'`
-        deb_name=`echo "$deb_name"|sed "s/^${Deb_N}[ \t]*\(.*\)/\1/"`
-        if (which "$Exe_N" > /dev/null 2>&1);then
-            print_info "Check [ $Deb_N ] ok"
-        else
-            DEBIAN_FRONTEND=noninteractive apt-get -qq -y install "$Deb_N"
-            apt-get clean
-            print_info "Install [ $Deb_N ] ok"
-        fi
-    done
 }
 
 #环境检测以及基础工具检测安装
@@ -291,10 +268,6 @@ function check_Required(){
     cat /etc/issue >>${Script_Dir}/ocerror.log
     echo "Codename : $oc_D_V" >>${Script_Dir}/ocerror.log
     echo "" >>${Script_Dir}/ocerror.log
-    cat /etc/issue|grep -i 'debian' > /dev/null 2>&1 || {
-        print_info "Only test on ubuntu 14.04"
-        oc_D_V="$(cat /etc/debian_version)"
-    }
     print_info "Debian version ok"
 #check systemd
     ocserv_systemd="n"
@@ -321,8 +294,6 @@ function get_info_from_net(){
 }
 
 function get_Custom_configuration(){
-#Which ocserv version to install 安装哪个版本的ocserv
-    fast_Default_Ask "$OC_version_latest is the latest,but default version is recommended.Which to choose?" "$Default_oc_version" "oc_version"
 #whether to use the certificate login 是否证书登录,默认为用户名密码登录
     fast_Default_Ask "Whether to choose the certificate login?(y/n)" "n" "ca_login"
 #whether to generate a Self-signed CA 是否需要制作自签名证书
@@ -339,6 +310,13 @@ function get_Custom_configuration(){
 #get server's FQDN
         Default_Ask "Your server's domain?" "$ocserv_hostname" "fqdnname"
     fi
+#question part 2
+    get_Custom_configuration_2
+}
+
+function get_Custom_configuration_2(){
+#Which ocserv version to install 安装哪个版本的ocserv
+    fast_Default_Ask "$OC_version_latest is the latest,but default version is recommended.Which to choose?" "$Default_oc_version" "oc_version"
 #set max router rulers 最大路由规则限制数目
     fast_Default_Ask "The maximum number of routing table rules?" "200" "max_router"
 #which port to use for verification 选择验证端口
@@ -395,7 +373,6 @@ function Dependencies_install_onebyone(){
 function tar_lz4_install(){
     print_info "Installing lz4 from github"
     DEBIAN_FRONTEND=noninteractive apt-get -y -qq remove --purge liblz4-dev
-    apt-get autoremove -qq -y && apt-get clean
     mkdir lz4
     LZ4_VERSION=`curl "https://github.com/Cyan4973/lz4/releases/latest" | sed -n 's/^.*tag\/\(.*\)".*/\1/p'` 
     curl -SL "https://github.com/Cyan4973/lz4/archive/$LZ4_VERSION.tar.gz" -o lz4.tar.gz
@@ -416,6 +393,7 @@ function tar_lz4_install(){
 #install freeradius-client 1.1.7
 function tar_freeradius_client_install(){
     print_info "Installing freeradius-client-1.1.7"
+    DEBIAN_FRONTEND=noninteractive apt-get -y -qq remove --purge freeradius-client*
     wget -c ftp://ftp.freeradius.org/pub/freeradius/freeradius-client-1.1.7.tar.gz
     tar -zxf freeradius-client-1.1.7.tar.gz
     cd freeradius-client-1.1.7
@@ -424,6 +402,19 @@ function tar_freeradius_client_install(){
     cd ..
     rm -rf freeradius-client*
     print_info "[ freeradius-client ] ok"
+}
+
+function test_source_install(){
+    [ "$1" = "n" ] && {
+        echo "deb http://ftp.debian.org/debian $2 main contrib non-free" >> /etc/apt/sources.list.d/ocserv.list
+        apt-get update
+    }
+    oc_dependencies="$3" && TEST_S="-t $2 -f --force-yes"
+    Dependencies_install_onebyone
+    [ "$1" = "n" ] && {
+        rm -rf /etc/apt/sources.list.d/ocserv.list
+        apt-get update
+    }
 }
 
 #install dependencies 安装依赖文件
@@ -450,39 +441,30 @@ APT::Install-Suggests "false";
 APT::Get::Install-Recommends "false";
 APT::Get::Install-Suggests "false";
 EOF
-#sources check @ check Required 源检测在前面
 #gnutls-bin于debian7/ubuntu太旧，无法实现证书同属多组模式，即OU只能一个的问题。
     [ "$oc_D_V" = "wheezy" ] || {
         oc_add_dependencies="libgnutls28-dev libseccomp-dev libhttp-parser-dev libkrb5-dev"
-        [ "$oc_D_V" = "jessie" ] && oc_add_dependencies="$oc_add_dependencies gnutls-bin libprotobuf-c-dev"
+        [ "$oc_D_V" = "trusty" ] || {
+            oc_add_dependencies="$oc_add_dependencies libprotobuf-c-dev"
+            [ "$oc_D_V" = "utopic" ] || {
+                oc_add_dependencies="$oc_add_dependencies gnutls-bin"
+            }
+        }     
     }
     oc_dependencies="openssl autogen gperf pkg-config make gcc m4 build-essential libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev libtalloc-dev $oc_add_dependencies"
     TEST_S=""
     Dependencies_install_onebyone   
 #install dependencies from wheezy-backports for debian wheezy
     [ "$oc_D_V" = "wheezy" ] && {
-        [ "$source_wheezy_backports" = "n" ] && {
-            echo "deb http://ftp.debian.org/debian wheezy-backports main contrib non-free" >> /etc/apt/sources.list.d/ocserv.list
-            apt-get update
-        }
-        oc_dependencies="gnutls-bin libgnutls28-dev libseccomp-dev" && TEST_S="-t wheezy-backports -f --force-yes"
-        Dependencies_install_onebyone
-        [ "$source_wheezy_backports" = "n" ] && {
-            rm -rf /etc/apt/sources.list.d/ocserv.list
-            apt-get update
-        }  
+        test_source_install "$source_wheezy_backports" "wheezy-backports" "gnutls-bin libgnutls28-dev libseccomp-dev"  
     }
 #install dependencies from jessie for ubuntu 14.04
-    [ "$oc_D_V" = "jessie/sid" ] && {
-        [ "$source_jessie" = "n" ] && {
-            echo "deb http://ftp.debian.org/debian jessie main contrib non-free" >> /etc/apt/sources.list.d/ocserv.list
-            apt-get update
-        }
-        oc_dependencies="gnutls-bin libtasn1-6-dev libtasn1-3-dev libtasn1-3-bin libtasn1-6-dbg libtasn1-bin libtasn1-doc" && TEST_S="-t jessie -f --force-yes"
-        [ "$source_jessie" = "n" ] && {
-            rm -rf /etc/apt/sources.list.d/ocserv.list
-            apt-get update
-        } 
+    [ "$oc_D_V" = "trusty" ] && {
+        test_source_install "$source_jessie" "jessie" "gnutls-bin libtasn1-6-dev libtasn1-3-dev libtasn1-3-bin libtasn1-6-dbg libtasn1-bin libtasn1-doc"
+    }
+#install dependencies from jessie for ubuntu 14.10
+    [ "$oc_D_V" = "utopic" ] && {
+        test_source_install "$source_jessie" "jessie" "gnutls-bin"
     }
 #install freeradius-client-1.1.7
     tar_freeradius_client_install
@@ -490,6 +472,8 @@ EOF
 #libprotobuf-c-dev libhttp-parser-dev
 #lz4
     tar_lz4_install
+#clean file
+    apt-get autoremove -qq -y && apt-get clean
 #keep update
     rm -f /etc/apt/preferences.d/my_ocserv_preferences
     rm -f /etc/apt/apt.conf.d/77ocserv
@@ -855,12 +839,12 @@ function set_ocserv_conf(){
     echo "route = 128.0.0.0/128.0.0.0" >> /etc/ocserv/config-per-group/All
 #boot from the start 开机自启
     [ "$ocserv_boot_start" = "y" ] && {
-    print_info "Enable ocserv service to start during bootup."
-    [ "$ocserv_systemd" = "y" ] && {
-    systemctl daemon-reload > /dev/null 2>&1
-    systemctl enable ocserv.service > /dev/null 2>&1 || sudo insserv ocserv > /dev/null 2>&1
-    }
-    [ "$ocserv_systemd" = "n" ] && sudo insserv ocserv > /dev/null 2>&1
+        print_info "Enable ocserv service to start during bootup."
+        [ "$ocserv_systemd" = "y" ] && {
+            systemctl daemon-reload > /dev/null 2>&1
+            systemctl enable ocserv.service > /dev/null 2>&1 || sudo insserv ocserv > /dev/null 2>&1
+        }
+        [ "$ocserv_systemd" = "n" ] && sudo insserv ocserv > /dev/null 2>&1
     }
 #add a user ，the plain login 增加一个初始用户，用户密码方式下
     [ "$ca_login" = "n" ] && plain_login_set
@@ -1152,8 +1136,9 @@ oc_D_V=$(lsb_release -c -s)
 [ "$oc_D_V" = "jessie" ] && return 0
 #[ "$oc_D_V" = "stretch" ] && return 0
 [ "$oc_D_V" = "trusty" ] && return 0
-#[ "$oc_D_V" = "utopic" ] && return 0
-#[ "$oc_D_V" = "wily" ] && return 0
+[ "$oc_D_V" = "utopic" ] && return 0
+[ "$oc_D_V" = "vivid" ] && return 0
+#[ "$oc_D_V" = "Wily" ] && return 0
 }
 
 ##################################################################################################################
