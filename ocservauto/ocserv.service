@@ -15,7 +15,7 @@ ExecReload=/bin/kill -HUP $MAINPID
 [Install]
 WantedBy=multi-user.target
 
-#You cloud del /etc/init.d/ocserv
+
 #Put this file to $PATH/lib/systemd/system
 #systemctl daemon-reload
 #systemctl enable ocserv.service
