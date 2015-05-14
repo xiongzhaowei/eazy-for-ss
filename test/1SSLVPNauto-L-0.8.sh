@@ -26,6 +26,7 @@
 #   https://github.com/humiaozuzu/ocserv-build/tree/master/config
 #   https://blog.qmz.me/zai-vpsshang-da-jian-anyconnect-vpnfu-wu-qi/
 #   http://www.gnutls.org/manual/gnutls.html#certtool-Invocation
+#   Max Lv (server /etc/init.d/ocserv)
 #===============================================================================================
 
 ###################################################################################################################
@@ -139,7 +140,7 @@ function fast_Default_Ask(){
 #core-function                                                                                                    #
 ###################################################################################################################
 
-#install 安装主体
+#多服务器共用一份客户端证书模式以及正常模式下，主服务器的安装主体
 function install_OpenConnect_VPN_server(){
 #check system , get IP and ocversion ,del test sources 检测系统 获取本机公网ip 最新版本 去除测试源
     check_Required
@@ -198,6 +199,7 @@ function install_OpenConnect_VPN_server(){
     show_ocserv    
 }
 
+#多服务器共用一份客户端证书模式，分服务器的安装主体
 function install_Oneclientcer(){
     [ ! -f ${Script_Dir}/ca-cert.pem ] && die "${Script_Dir}/ca-cert.pem NOT Found."
     [ -f ${Script_Dir}/crl.pem ] && CRL_ADD="y"
@@ -219,7 +221,7 @@ function install_Oneclientcer(){
     mv ${Script_Dir}/ca-cert.pem /etc/ocserv
     set_ocserv_conf
     [ "$CRL_ADD" = "y" ] || {
-        sed -i 's|^crl =.*|#&|' /etc/ocserv/ocserv.conf
+        sed -i 's|^crl =.*|#&|' ${LOC_OC_CONF}
     }
     [ "$CRL_ADD" = "y" ] && {
         mv ${Script_Dir}/crl.pem /etc/ocserv
@@ -234,6 +236,33 @@ function install_Oneclientcer(){
     fi
 }
 
+#配置文件$1中是否含有$2
+function character_Test(){
+sed 's/^[ \t]*//' "$1" | grep -v '^#' | grep "$2" > /dev/null 2>&1
+[ $? -eq 0 ] && return 0
+}
+
+#检测安装
+function check_install(){
+    exec_name="$1"
+    deb_name="$2"
+    Deb_N=""
+    deb_name=`echo "$deb_name"|sed "s/^${Deb_N}[ \t]*\(.*\)/\1/"`
+    for Exe_N in $exec_name
+    do
+        Deb_N=`echo "$deb_name"|sed 's/^\([^ ]*\).*/\1/'`
+        deb_name=`echo "$deb_name"|sed "s/^${Deb_N}[ \t]*\(.*\)/\1/"`
+        if (which "$Exe_N" > /dev/null 2>&1);then
+            print_info "Check [ $Deb_N ] ok"
+        else
+            DEBIAN_FRONTEND=noninteractive apt-get -qq -y install "$Deb_N"
+            apt-get clean
+            print_info "Install [ $Deb_N ] ok"
+        fi
+    done
+}
+
+#环境检测以及基础工具检测安装
 function check_Required(){
 #check root
     [ $EUID -ne 0 ] && die 'Must be run by root user.'
@@ -243,36 +272,39 @@ function check_Required(){
     print_info "Debian-based ok"
 #tun/tap
     [ ! -e /dev/net/tun ] && die "TUN/TAP is not available."
+    print_info "TUN/TAP ok"
+#check install 防止重复安装
+    [ -f /usr/sbin/ocserv ] && die "Ocserv has been installed."
+    print_info "Not installed ok"
+#del ocerror.log
+    [ -f ${Script_Dir}/ocerror.log ] && rm -r ${Script_Dir}/ocerror.log
+#install base-tools 
+    print_info "Installing base-tools......"
+    apt-get update  -qq
+    check_install "curl vim sudo gawk sed wget insserv nano" "curl vim sudo gawk sed wget insserv nano"
+    check_install "dig lsb_release" "dnsutils lsb-release"
+    insserv -s  > /dev/null 2>&1 || sudo ln -s /usr/lib/insserv/insserv /sbin/insserv
+    print_info "Get base-tools ok"
 #only Debian 7+
-    cat /etc/issue|grep -i 'debian' > /dev/null 2>&1 && {
-        oc_D_V=`expr $(cat /etc/debian_version | cut -d. -f1)`
-        [ $oc_D_V -lt 7 ] && die "Your system is debian $oc_D_V. Only for Debian 7+."
-        [ "$oc_D_V" = "7" ] && oc_D_V="wheezy"
-        [ "$oc_D_V" = "8" ] && oc_D_V="jessie"
-        [ "$oc_D_V" = "9" ] && oc_D_V="stretch"
-        print_info "Debian version ok"
-    }
+    surport_Syscodename || die "Sorry, your system is too old or has not been tested."
+    echo "SYS INFO" >>${Script_Dir}/ocerror.log
+    cat /etc/issue >>${Script_Dir}/ocerror.log
+    echo "Codename : $oc_D_V" >>${Script_Dir}/ocerror.log
+    echo "" >>${Script_Dir}/ocerror.log
     cat /etc/issue|grep -i 'debian' > /dev/null 2>&1 || {
         print_info "Only test on ubuntu 14.04"
         oc_D_V="$(cat /etc/debian_version)"
     }
-#check install 防止重复安装
-    [ -f /usr/sbin/ocserv ] && die "Ocserv has been installed."
-    print_info "Not installed ok"
-#sources check,del test sources 去掉测试源 
-    sed 's/^[ \t]*//' /etc/apt/sources.list | grep -v '^#' | grep 'wheezy-backports' > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        oc_wheezy_backports="n"
-     else
-        oc_wheezy_backports="y"
-    fi
-    print_info "Sources ok"
-#install base-tools 
-    print_info "Installing base-tools......"
-    apt-get update  -qq
-    apt-get install -qq -y vim sudo gawk curl nano sed insserv dnsutils
-    insserv -s  > /dev/null 2>&1 || sudo ln -s /usr/lib/insserv/insserv /sbin/insserv
-    print_info "Get base-tools ok"
+    print_info "Debian version ok"
+#check systemd
+    ocserv_systemd="n"
+    pgrep systemd-journal > /dev/null 2>&1 && ocserv_systemd="y"
+    print_info "Systemd status : $ocserv_systemd"
+#sources check
+    source_wheezy_backports="y" && source_jessie="y"
+    character_Test "/etc/apt/sources.list" "wheezy-backports" || source_wheezy_backports="n"
+    character_Test "/etc/apt/sources.list" "jessie" || source_jessie="n"
+    print_info "Sources check ok"
 #get info from net 从网络中获取信息
     print_info "Getting info from net......"
     get_info_from_net
@@ -333,9 +365,9 @@ function add_a_user(){
     fi
 #get password,if ca login,4 figures default
     if [ "$ca_login" = "y" ] && [ "$self_signed_ca" = "y" ]; then
-        Default_Ask "Input a common name for your p12-cert file." "$(get_random_word 4)" "name_user_ca"
+        Default_Ask "Input a name for your p12-cert file." "$(get_random_word 4)" "name_user_ca"
         while [ -d /etc/ocserv/CAforOC/user-${name_user_ca} ]; do
-            Default_Ask "The common name already exists,change one please!" "$(get_random_word 4)" "name_user_ca"
+            Default_Ask "The name already exists,change one please!" "$(get_random_word 4)" "name_user_ca"
         done
         Default_Ask "Input your password for your p12-cert file." "$(get_random_word 4)" "password"
 #get expiration days for client p12-cert 获取客户端证书到期天数
@@ -350,10 +382,11 @@ function Dependencies_install_onebyone(){
         print_info "Installing $OC_DP "
         DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $TEST_S $OC_DP
         if [ $? -eq 0 ]; then
-            print_info "[ ${OC_DP} ] ok!"
+            print_info "Install [ ${OC_DP} ] ok!"
             apt-get clean
         else
             print_warn "[ ${OC_DP} ] not be installed!"
+            echo "[ ${OC_DP} ] not be installed!" >>${Script_Dir}/ocerror.log
         fi
     done
 }
@@ -402,6 +435,7 @@ function pre_install(){
 #no upgrade from test sources 不升级不安装测试源其他包
     [ ! -d /etc/apt/preferences.d ] && mkdir /etc/apt/preferences.d
     [ ! -d /etc/apt/apt.conf.d ] && mkdir /etc/apt/apt.conf.d
+    [ ! -d /etc/apt/sources.list.d ] && mkdir /etc/apt/sources.list.d    
     cat > /etc/apt/preferences.d/my_ocserv_preferences<<'EOF'
 Package: *
 Pin: release wheezy
@@ -416,36 +450,39 @@ APT::Install-Suggests "false";
 APT::Get::Install-Recommends "false";
 APT::Get::Install-Suggests "false";
 EOF
-#sources check @ check Required 源检测在前面 for ubuntu+3
+#sources check @ check Required 源检测在前面
 #gnutls-bin于debian7/ubuntu太旧，无法实现证书同属多组模式，即OU只能一个的问题。
     [ "$oc_D_V" = "wheezy" ] || {
-        oc_u_dependencies="libgnutls28-dev libseccomp-dev libhttp-parser-dev libkrb5-dev"
-        [ "$oc_D_V" = "jessie/sid" ] || oc_u_dependencies="$oc_u_dependencies gnutls-bin libprotobuf-c-dev"
+        oc_add_dependencies="libgnutls28-dev libseccomp-dev libhttp-parser-dev libkrb5-dev"
+        [ "$oc_D_V" = "jessie" ] && oc_add_dependencies="$oc_add_dependencies gnutls-bin libprotobuf-c-dev"
     }
-    oc_dependencies="openssl gperf build-essential pkg-config make gcc m4 libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_u_dependencies"
+    oc_dependencies="openssl autogen gperf pkg-config make gcc m4 build-essential libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev libtalloc-dev $oc_add_dependencies"
     TEST_S=""
-    Dependencies_install_onebyone
-    
-#install dependencies from wheezy-backports
+    Dependencies_install_onebyone   
+#install dependencies from wheezy-backports for debian wheezy
     [ "$oc_D_V" = "wheezy" ] && {
-        [ "$oc_wheezy_backports" = "n" ] && {
-            echo "deb http://ftp.debian.org/debian wheezy-backports main contrib non-free" >> /etc/apt/sources.list
+        [ "$source_wheezy_backports" = "n" ] && {
+            echo "deb http://ftp.debian.org/debian wheezy-backports main contrib non-free" >> /etc/apt/sources.list.d/ocserv.list
             apt-get update
         }
         oc_dependencies="gnutls-bin libgnutls28-dev libseccomp-dev" && TEST_S="-t wheezy-backports -f --force-yes"
         Dependencies_install_onebyone
-        [ "$oc_wheezy_backports" = "n" ] && {
-            sed -i '/wheezy-backports/d' /etc/apt/sources.list
+        [ "$source_wheezy_backports" = "n" ] && {
+            rm -rf /etc/apt/sources.list.d/ocserv.list
             apt-get update
         }  
     }
+#install dependencies from jessie for ubuntu 14.04
     [ "$oc_D_V" = "jessie/sid" ] && {
-        echo "deb http://ftp.debian.org/debian jessie main contrib non-free" >> /etc/apt/sources.list
+        [ "$source_jessie" = "n" ] && {
+            echo "deb http://ftp.debian.org/debian jessie main contrib non-free" >> /etc/apt/sources.list.d/ocserv.list
+            apt-get update
+        }
         oc_dependencies="gnutls-bin libtasn1-6-dev libtasn1-3-dev libtasn1-3-bin libtasn1-6-dbg libtasn1-bin libtasn1-doc" && TEST_S="-t jessie -f --force-yes"
-        apt-get update
-        Dependencies_install_onebyone
-        sed -i '/jessie main contrib non-free/d' /etc/apt/sources.list
-        apt-get update
+        [ "$source_jessie" = "n" ] && {
+            rm -rf /etc/apt/sources.list.d/ocserv.list
+            apt-get update
+        } 
     }
 #install freeradius-client-1.1.7
     tar_freeradius_client_install
@@ -472,7 +509,7 @@ function tar_ocserv_install(){
     cd ocserv-$oc_version
 #have to use "" then $ work ,set router limit 设定路由规则最大限制
     sed -i "s|\(#define MAX_CONFIG_ENTRIES \).*|\1$max_router|" src/vpn.h
-    ./configure --prefix=/usr --sysconfdir=/etc 2>${Script_Dir}/ocerror.log
+    ./configure --prefix=/usr --sysconfdir=/etc 2>>${Script_Dir}/ocerror.log
     make -j"$(nproc)" 2>>${Script_Dir}/ocerror.log
     make install
 #check install 检测编译安装是否成功
@@ -481,7 +518,7 @@ function tar_ocserv_install(){
         die "Ocserv install failure,check ${Script_Dir}/ocerror.log"
     }
 #mv files
-    rm -f ${Script_Dir}/ocerror.log
+#    rm -f ${Script_Dir}/ocerror.log
     mkdir -p /etc/ocserv/CAforOC/revoke > /dev/null 2>&1
     mkdir /etc/ocserv/{config-per-group,defaults} > /dev/null 2>&1
     cp doc/profile.xml /etc/ocserv
@@ -514,8 +551,8 @@ DAEMON_ARGS=""
 CONFFILE="/etc/ocserv/ocserv.conf"
 PIDFILE=/var/run/$NAME/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
-SERVER_UP="/etc/ocserv/start-ocserv-sysctl.sh"
-SERVER_DOWN="/etc/ocserv/stop-ocserv-sysctl.sh"
+SERVER_UP="/etc/ocserv/ocserv-up.sh"
+SERVER_DOWN="/etc/ocserv/ocserv-down.sh"
 
 # Exit if the package is not installed
 [ -x $DAEMON ] || exit 0
@@ -630,7 +667,7 @@ esac
 :
 EOF
     chmod 755 /etc/init.d/ocserv
-    cat > start-ocserv-sysctl.sh <<'EOF'
+    cat > ocserv-up.sh <<'EOF'
 #!/bin/bash
 
 #vars
@@ -674,11 +711,9 @@ fi
 if !(iptables-save -t mangle | grep -q "$gw_intf_oc (ocserv6)"); then
 iptables -t mangle -A FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -m comment --comment "$gw_intf_oc (ocserv6)" -j TCPMSS --clamp-mss-to-pmtu
 fi
-
-echo "..."
 EOF
-    chmod +x start-ocserv-sysctl.sh
-    cat > stop-ocserv-sysctl.sh <<'EOF'
+    chmod +x ocserv-up.sh
+    cat > ocserv-down.sh <<'EOF'
 #!/bin/bash
 
 # uncomment if you want to turn off IP forwarding
@@ -687,15 +722,13 @@ EOF
 #del iptables
 
 iptables-save | grep 'ocserv' | sed 's/^-A P/iptables -t nat -D P/' | sed 's/^-A FORWARD -p/iptables -t mangle -D FORWARD -p/' | sed 's/^-A/iptables -D/' | bash
-
-echo "..."
 EOF
-    chmod +x stop-ocserv-sysctl.sh
+    chmod +x ocserv-down.sh
     while [ ! -f ocserv.conf ]; do
-        wget -c $OC_CONF_NET_DOC/ocserv.conf --no-check-certificate
+        wget -c $NET_OC_CONF_DOC/ocserv.conf --no-check-certificate
     done
     while [ ! -f config-per-group/Route ]; do
-        wget -c $OC_CONF_NET_DOC/routerulers -O config-per-group/Route --no-check-certificate
+        wget -c $NET_OC_CONF_DOC/routerulers -O config-per-group/Route --no-check-certificate
     done
     if [ ! -f dh.pem ]; then
         print_info "Perhaps generate DH parameters will take some time , please wait..."
@@ -727,6 +760,9 @@ ca
 signing_key
 cert_signing_key
 crl_signing_key
+# An URL that has CRLs (certificate revocation lists)
+# available. Needed in CA certificates.
+#crl_dist_points = "http://www.getcrl.crl/getcrl/"
 _EOF_
     certtool --generate-self-signed --hash SHA256 --load-privkey ca-key.pem --template ca.tmpl --outfile ca-cert.pem
 #generating a local server key-certificate pair 通过自签证书授权中心制作服务器的私钥与证书
@@ -749,7 +785,7 @@ _EOF_
 }
 
 function ca_login_ocserv(){
-#make a client cert
+#generate a client cert
     print_info "Generating a client cert..."
     cd /etc/ocserv/CAforOC
     caname=`cat ca.tmpl | grep cn | cut -d '"' -f 2`
@@ -771,9 +807,10 @@ expiration_days = ${oc_ex_days}
 signing_key
 tls_www_client
 _EOF_
+#two group then two unit,but IOS anyconnect does not surport. 
+    [ "$open_two_group" = "y" ] && sed -i 's/^#//' user-${name_user_ca}/user.tmpl
 #user key
-    [ "$open_two_group" = "y" ] && sed -i '/^#//' user-${name_user_ca}/user.tmpl
-    certtool --generate-privkey --sec-param high --outfile user-${name_user_ca}/user-${name_user_ca}-key.pem
+    openssl genrsa -out user-${name_user_ca}/user-${name_user_ca}-key.pem 1024
 #user cert
     certtool --generate-certificate --hash SHA256 --load-privkey user-${name_user_ca}/user-${name_user_ca}-key.pem --load-ca-certificate ca-cert.pem --load-ca-privkey ca-key.pem --template user-${name_user_ca}/user.tmpl --outfile user-${name_user_ca}/user-${name_user_ca}-cert.pem
 #p12
@@ -785,7 +822,7 @@ _EOF_
 }
 
 function empty_revocation_list(){
-#make a empty revocation list
+#generate a empty revocation list
     if [ ! -f crl.tmpl ];then
     cat << _EOF_ >crl.tmpl
 crl_next_update = 7777 
@@ -804,12 +841,12 @@ function set_ocserv_conf(){
     ocserv_boot_start=${ocserv_boot_start:-y}
     only_tcp_port=${only_tcp_port:-n}
 #set port
-    sed -i "s|\(tcp-port = \).*|\1$ocserv_tcpport_set|" /etc/ocserv/ocserv.conf
-    sed -i "s|\(udp-port = \).*|\1$ocserv_udpport_set|" /etc/ocserv/ocserv.conf
+    sed -i "s|\(tcp-port = \).*|\1$ocserv_tcpport_set|" ${LOC_OC_CONF}
+    sed -i "s|\(udp-port = \).*|\1$ocserv_udpport_set|" ${LOC_OC_CONF}
 #default domain compression dh.pem
-    sed -i "s|^[# \t]*\(default-domain = \).*|\1$fqdnname|" /etc/ocserv/ocserv.conf
-    sed -i "s|^[# \t]*\(compression = \).*|\1true|" /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(dh-params = \).*|\1/etc/ocserv/dh.pem|' /etc/ocserv/ocserv.conf
+    sed -i "s|^[# \t]*\(default-domain = \).*|\1$fqdnname|" ${LOC_OC_CONF}
+    sed -i "s|^[# \t]*\(compression = \).*|\1true|" ${LOC_OC_CONF}
+    sed -i 's|^[# \t]*\(dh-params = \).*|\1/etc/ocserv/dh.pem|' ${LOC_OC_CONF}
 #2-group 增加组 bug 证书登录无法正常使用Default组
     [ "$open_two_group" = "y" ] && two_group_set
     echo "route = 0.0.0.0/128.0.0.0" > /etc/ocserv/defaults/group.conf
@@ -817,15 +854,22 @@ function set_ocserv_conf(){
     echo "route = 0.0.0.0/128.0.0.0" > /etc/ocserv/config-per-group/All
     echo "route = 128.0.0.0/128.0.0.0" >> /etc/ocserv/config-per-group/All
 #boot from the start 开机自启
-    [ "$ocserv_boot_start" = "y" ] && sudo insserv ocserv > /dev/null 2>&1
-#add a user 增加一个初始用户
+    [ "$ocserv_boot_start" = "y" ] && {
+    print_info "Enable ocserv service to start during bootup."
+    [ "$ocserv_systemd" = "y" ] && {
+    systemctl daemon-reload > /dev/null 2>&1
+    systemctl enable ocserv.service > /dev/null 2>&1 || sudo insserv ocserv > /dev/null 2>&1
+    }
+    [ "$ocserv_systemd" = "n" ] && sudo insserv ocserv > /dev/null 2>&1
+    }
+#add a user ，the plain login 增加一个初始用户，用户密码方式下
     [ "$ca_login" = "n" ] && plain_login_set
-#set only tcp-port 仅仅使用tcp端口
-    [ "$only_tcp_port" = "y" ] && sed -i 's|^[ \t]*\(udp-port = \)|#\1|' /etc/ocserv/ocserv.conf
-#set ca_login
+#only tcp-port 仅仅使用tcp端口
+    [ "$only_tcp_port" = "y" ] && sed -i 's|^[ \t]*\(udp-port = \)|#\1|' ${LOC_OC_CONF}
+#setup the cert login
     [ "$ca_login" = "y" ] && {
-        sed -i 's|^[ \t]*\(auth = "plain\)|#\1|' /etc/ocserv/ocserv.conf
-        sed -i 's|^[# \t]*\(auth = "certificate"\)|\1|' /etc/ocserv/ocserv.conf
+        sed -i 's|^[ \t]*\(auth = "plain\)|#\1|' ${LOC_OC_CONF}
+        sed -i 's|^[# \t]*\(auth = "certificate"\)|\1|' ${LOC_OC_CONF}
         ca_login_set
     }
 #save custom-configuration files or not
@@ -834,13 +878,13 @@ function set_ocserv_conf(){
 }
 
 function two_group_set(){
-    sed -i 's|^[# \t]*\(cert-group-oid = \).*|\12.5.4.11|' /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(select-group = \)group1.*|\1Route|' /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(select-group = \)group2.*|\1All|' /etc/ocserv/ocserv.conf
-#    sed -i 's|^[# \t]*\(default-select-group = \).*|\1Default|' /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(auto-select-group = \).*|\1false|' /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(config-per-group = \).*|\1/etc/ocserv/config-per-group|' /etc/ocserv/ocserv.conf
-#    sed -i 's|^[# \t]*\(default-group-config = \).*|\1/etc/ocserv/defaults/group.conf|' /etc/ocserv/ocserv.conf
+    sed -i 's|^[# \t]*\(cert-group-oid = \).*|\12.5.4.11|' ${LOC_OC_CONF}
+    sed -i 's|^[# \t]*\(select-group = \)group1.*|\1Route|' ${LOC_OC_CONF}
+    sed -i 's|^[# \t]*\(select-group = \)group2.*|\1All|' ${LOC_OC_CONF}
+#    sed -i 's|^[# \t]*\(default-select-group = \).*|\1Default|' ${LOC_OC_CONF}
+    sed -i 's|^[# \t]*\(auto-select-group = \).*|\1false|' ${LOC_OC_CONF}
+    sed -i 's|^[# \t]*\(config-per-group = \).*|\1/etc/ocserv/config-per-group|' ${LOC_OC_CONF}
+#    sed -i 's|^[# \t]*\(default-group-config = \).*|\1/etc/ocserv/defaults/group.conf|' ${LOC_OC_CONF}
 }
 
 function plain_login_set(){
@@ -849,10 +893,12 @@ function plain_login_set(){
 }
 
 function ca_login_set(){
-    sed -i 's|^[# \t]*\(ca-cert = \).*|\1/etc/ocserv/ca-cert.pem|' /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(crl = \).*|\1/etc/ocserv/crl.pem|' /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(cert-user-oid = \).*|\12\.5\.4\.3|' /etc/ocserv/ocserv.conf
-#    sed -i 's|^[# \t]*\(cert-user-oid = \).*|\10\.9\.2342\.19200300\.100\.1\.1|' /etc/ocserv/ocserv.conf
+    sed -i 's|^[# \t]*\(ca-cert = \).*|\1/etc/ocserv/ca-cert.pem|' ${LOC_OC_CONF}
+    sed -i 's|^[# \t]*\(crl = \).*|\1/etc/ocserv/crl.pem|' ${LOC_OC_CONF}
+#用客户端证书CN作为用户名来区分用户
+    sed -i 's|^[# \t]*\(cert-user-oid = \).*|\12\.5\.4\.3|' ${LOC_OC_CONF}
+#用客户端证书UID作为用户名来区分用户
+#    sed -i 's|^[# \t]*\(cert-user-oid = \).*|\10\.9\.2342\.19200300\.100\.1\.1|' ${LOC_OC_CONF}
 }
 
 function stop_ocserv(){
@@ -878,7 +924,7 @@ function start_ocserv(){
 }
 
 function show_ocserv(){
-    ocserv_port=`sed -n 's/^[ \t]*tcp-port[ \t]*=[ \t]*//p' /etc/ocserv/ocserv.conf`
+    ocserv_port=`sed -n 's/^[ \t]*tcp-port[ \t]*=[ \t]*//p' ${LOC_OC_CONF}`
     clear
     ps cax | grep ocserv > /dev/null 2>&1
     if [ $? -eq 0 ]; then
@@ -887,7 +933,7 @@ function show_ocserv(){
             echo -e "\033[41;37m Your server domain is \033[0m" "$fqdnname:$ocserv_port"
             echo -e "\033[41;37m Your p12-cert's password is \033[0m" "$password"
             echo -e "\033[41;37m Your p12-cert's number of expiration days is \033[0m" "$oc_ex_days"
-            print_warn "You could get user-${name_user_ca}.p12 from ${Script_Dir}."
+            print_warn "You could get ${name_user_ca}.p12 from ${Script_Dir}."
             print_warn "You could stop ocserv by ' /etc/init.d/ocserv stop '!"
             print_warn "Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
             echo ""    
@@ -1001,6 +1047,8 @@ function reinstall_ocserv(){
     rm -rf /etc/ocserv
     rm -rf /usr/sbin/ocserv
     rm -rf /etc/init.d/ocserv
+    rm -rf /usr/bin/occtl
+    rm -rf /usr/bin/ocpasswd
     install_OpenConnect_VPN_server
 }
 
@@ -1024,22 +1072,20 @@ function upgrade_ocserv(){
 }
 
 function enable_both_login(){
-    grep '^auth = "plain' /etc/ocserv/ocserv.conf
-    Pc_Ifa="$?"
-    grep '^enable-auth = certificate' /etc/ocserv/ocserv.conf
-    Pc_Ifb="$?"
-    if [ "$Pc_Ifa" = "0" -a "$Pc_Ifb" = "0" ]; then
-        die "You have enabled the plain and the certificate login."
-    fi
-    grep '^auth = "certificate"' /etc/ocserv/ocserv.conf
-    Pc_Var="$?"
-    [ "$Pc_Var" = "0" ] && enable_both_login_open_plain
-    [ "$Pc_Var" != "0" ] && enable_both_login_open_ca
+    character_Test ${LOC_OC_CONF} 'auth = "plain' && {
+        character_Test ${LOC_OC_CONF} 'enable-auth = certificate' && {
+            die "You have enabled the plain and the certificate login."
+        }
+        enable_both_login_open_ca
+    }
+    character_Test ${LOC_OC_CONF} 'auth = "certificate"' && {
+    enable_both_login_open_plain
+    }
 }
 
 function enable_both_login_open_ca(){
     get_new_userca
-    sed -i 's|^[# \t]*\(enable-auth = certificate\)|\1|' /etc/ocserv/ocserv.conf
+    sed -i 's|^[# \t]*\(enable-auth = certificate\)|\1|' ${LOC_OC_CONF}
     ca_login_set
     stop_ocserv
     start_ocserv
@@ -1055,9 +1101,9 @@ function enable_both_login_open_plain(){
     add_a_user
     press_any_key
     plain_login_set
-    sed -i 's|^[ \t]*\(auth = "certificate"\)|#\1|' /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(auth = "plain\)|\1|' /etc/ocserv/ocserv.conf
-    sed -i 's|^[# \t]*\(enable-auth = certificate\)|\1|' /etc/ocserv/ocserv.conf
+    sed -i 's|^[ \t]*\(auth = "certificate"\)|#\1|' ${LOC_OC_CONF}
+    sed -i 's|^[# \t]*\(auth = "plain\)|\1|' ${LOC_OC_CONF}
+    sed -i 's|^[# \t]*\(enable-auth = certificate\)|\1|' ${LOC_OC_CONF}
     stop_ocserv
     start_ocserv
     clear
@@ -1094,8 +1140,24 @@ function help_ocservauto(){
     print_info " help or h --------------------- Show this description"
     print_xxxx
 }
-###################################################################################################################
-#main                                                                                                             #
+
+#################################################################################################################
+#surport system codename                                                                                        #
+#################################################################################################################
+
+#已经测试过的系统
+function surport_Syscodename(){
+oc_D_V=$(lsb_release -c -s)
+[ "$oc_D_V" = "wheezy" ] && return 0
+[ "$oc_D_V" = "jessie" ] && return 0
+#[ "$oc_D_V" = "stretch" ] && return 0
+[ "$oc_D_V" = "trusty" ] && return 0
+#[ "$oc_D_V" = "utopic" ] && return 0
+#[ "$oc_D_V" = "wily" ] && return 0
+}
+
+##################################################################################################################
+#main                                                                                                            #
 ##################################################################################################################
 
 #install info
@@ -1110,15 +1172,21 @@ print_info " Help Info:  bash `basename $0` help"
 echo
 echo "==============================================================================================="
 
-#脚本所在文件夹
+#脚本所在文件夹 此处请不要改变
 Script_Dir="$(cd "$(dirname $0)"; pwd)"
 #fastmode vars 存放配置参数文件的绝对路径，快速安装模式可用
+#可以自定义
 CONFIG_PATH_VARS="${Script_Dir}/vars_ocservauto"
+#ocserv.conf 绝对路径，此处请不要改变
+LOC_OC_CONF="/etc/ocserv/ocserv.conf"
 #ocserv配置文件所在的网络文件夹位置，请勿轻易改变
-OC_CONF_NET_DOC="https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/ocservauto"
+NET_OC_CONF_DOC="https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/ocservauto"
 #推荐的默认版本
 Default_oc_version="0.10.4"
-#开启分组模式，证书以及用户名登录都会采取。
+#开启分组模式，每位用户都会分配到All组和Route组。
+#All走全局，Route将会绕过大陆。
+#证书以及用户名登录都会采取。
+#证书分组模式下，ios下anyconnect客户端有bug，请不要使用。
 open_two_group="n"
 
 #Initialization step
@@ -1159,7 +1227,8 @@ help | h)
 *)
     clear
     print_warn "Arguments error! [ ${action} ]"
-    print_warn "Usage:  bash `basename $0` {install|fm|gc|rc|ug|ri|pc|help}"
+    print_warn "Usage:  bash `basename $0` {install|fm|gc|rc|ug|ri|pc|occ|help}"
     help_ocservauto
     ;;
 esac
+exit 0
