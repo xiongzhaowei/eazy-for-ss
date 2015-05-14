@@ -8,6 +8,7 @@
 #   SSLVPNauto v0.1-A1 For Debian Copyright (C) Alex Fang frjalex@gmail.com released under GNU GPLv2
 #   Date: 2015-05-01
 #   Thanks For
+#   Max Lv (server /etc/init.d/ocserv)
 #   http://www.infradead.org/ocserv/
 #   https://www.stunnel.info  Travis Lee
 #   http://luoqkk.com/ luoqkk
@@ -294,12 +295,15 @@ function check_Required(){
         print_info "Only test on ubuntu 14.04"
         oc_D_V="$(cat /etc/debian_version)"
     }
-    print_info "Debian-based ok"
-#sources check 
+    print_info "Debian version ok"
+#check systemd
+    ocserv_systemd="n"
+    pgrep systemd-journal > /dev/null 2>&1 && ocserv_systemd="y"
+    print_info "Systemd status : $ocserv_systemd"
+#sources check
+    source_wheezy_backports="y" && source_jessie="y"
     character_Test "/etc/apt/sources.list" "wheezy-backports" || source_wheezy_backports="n"
-    character_Test "/etc/apt/sources.list" "wheezy-backports" && source_wheezy_backports="y"
     character_Test "/etc/apt/sources.list" "jessie" || source_jessie="n"
-    character_Test "/etc/apt/sources.list" "jessie" && source_jessie="y"
     print_info "Sources check ok"
 #get info from net 从网络中获取信息
     print_info "Getting info from net......"
@@ -452,7 +456,7 @@ EOF
         oc_add_dependencies="libgnutls28-dev libseccomp-dev libhttp-parser-dev libkrb5-dev"
         [ "$oc_D_V" = "jessie" ] && oc_add_dependencies="$oc_add_dependencies gnutls-bin libprotobuf-c-dev"
     }
-    oc_dependencies="openssl gperf build-essential pkg-config make gcc m4 libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev autogen libtalloc-dev $oc_add_dependencies"
+    oc_dependencies="openssl autogen gperf pkg-config make gcc m4 build-essential libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev libtalloc-dev $oc_add_dependencies"
     TEST_S=""
     Dependencies_install_onebyone   
 #install dependencies from wheezy-backports for debian wheezy
@@ -531,68 +535,133 @@ function tar_ocserv_install(){
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
+# Short-Description: ocserv
+# Description:       OpenConnect VPN server compatible with
+#                    Cisco AnyConnect VPN.
 ### END INIT INFO
-# Copyright Rene Mayrhofer, Gibraltar, 1999
-# This script is distibuted under the GPL
- 
-PATH=/bin:/usr/bin:/sbin:/usr/sbin
+
+# Author: Max Lv <max.c.lv@gmail.com>
+
+# PATH should only include /usr/ if it runs after the mountnfs.sh script
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC=ocserv
+NAME=ocserv
 DAEMON=/usr/sbin/ocserv
-PIDFILE=/var/run/ocserv.pid
-DAEMON_ARGS="-c /etc/ocserv/ocserv.conf"
+DAEMON_ARGS=""
+CONFFILE="/etc/ocserv/ocserv.conf"
+PIDFILE=/var/run/$NAME/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+SERVER_UP="/etc/ocserv/start-ocserv-sysctl.sh"
+SERVER_DOWN="/etc/ocserv/stop-ocserv-sysctl.sh"
 
 # Exit if the package is not installed
 [ -x $DAEMON ] || exit 0
- 
+
+: ${USER:="root"}
+: ${GROUP:="root"}
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.0-6) to ensure that this file is present.
+. /lib/lsb/init-functions
+
+#
+# Function that starts the daemon/service
+#
+do_start()
+{
+    # Add server up script
+    [ -x ${SERVER_UP} ] && . ${SERVER_UP}
+
+    # Take care of pidfile permissions
+    mkdir /var/run/$NAME 2>/dev/null || true
+    chown "$USER:$GROUP" /var/run/$NAME
+
+    # Return
+    #   0 if daemon has been started
+    #   1 if daemon was already running
+    #   2 if daemon could not be started
+    start-stop-daemon --start --quiet --pidfile $PIDFILE --chuid root:$GROUP --exec $DAEMON --test > /dev/null \
+        || return 1
+    start-stop-daemon --start --quiet --pidfile $PIDFILE --chuid root:$GROUP --exec $DAEMON -- \
+        -c "$CONFFILE" $DAEMON_ARGS \
+        || return 2
+}
+
+#
+# Function that stops the daemon/service
+#
+do_stop()
+{
+    # Add server down script
+    [ -x ${SERVER_DOWN} ] && . ${SERVER_DOWN}
+    
+    # Return
+    #   0 if daemon has been stopped
+    #   1 if daemon was already stopped
+    #   2 if daemon could not be stopped
+    #   other if a failure occurred
+    start-stop-daemon --stop --quiet --retry=KILL/5 --pidfile $PIDFILE --exec $DAEMON
+    RETVAL="$?"
+    [ "$RETVAL" = 2 ] && return 2
+    # Wait for children to finish too if this is a daemon that forks
+    # and if the daemon is only ever run from this initscript.
+    # If the above conditions are not satisfied then add some other code
+    # that waits for the process to drop all resources that could be
+    # needed by services started subsequently.  A last resort is to
+    # sleep for some time.
+    start-stop-daemon --stop --quiet --oknodo --retry=KILL/5 --exec $DAEMON
+    [ "$?" = 2 ] && return 2
+    # Many daemons don't delete their pidfiles when they exit.
+    rm -f $PIDFILE
+    return "$RETVAL"
+}
+
+
 case "$1" in
-start)
-if [ ! -r $PIDFILE ]; then
-echo -n "Starting OpenConnect VPN Server Daemon: "
-. /etc/ocserv/start-ocserv-sysctl.sh
-start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- \
-$DAEMON_ARGS > /dev/null
-echo "[ok]"
-else
-echo -n "OpenConnect VPN Server is already running.\n\r"
-exit 0
-fi
-;;
+    start)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC " "$NAME"
+        do_start
+        case "$?" in
+            0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+        2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+    esac
+    ;;
 stop)
-echo -n "Stopping OpenConnect VPN Server Daemon: "
-. /etc/ocserv/stop-ocserv-sysctl.sh
-start-stop-daemon --stop --quiet --pidfile $PIDFILE --exec $DAEMON
-echo "[ok]"
-rm -f $PIDFILE
+    [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+    do_stop
+    case "$?" in
+        0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+    2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+esac
 ;;
-force-reload|restart)
-echo "Restarting OpenConnect VPN Server: "
-$0 stop
-sleep 3
-$0 start
-;;
-status)
-if [ ! -r $PIDFILE ]; then
-echo "no pid file, process doesn't seem to be running correctly"
-exit 3
-fi
-PID=`cat $PIDFILE | sed 's/ //g'`
-EXE=/proc/$PID/exe
-if [ -x "$EXE" ] &&
-[ "`ls -l \"$EXE\" | cut -d'>' -f2,2 | cut -d' ' -f2,2`" = \
-"$DAEMON" ]; then
-echo "ok, process seems to be running"
-exit 0
-elif [ -r $PIDFILE ]; then
-echo "process not running, but pidfile exists"
-exit 1
-else
-echo "no lock file to check for, so simply return the stopped status"
-exit 3
-fi
-;;
+  status)
+      status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
+      ;;
+  restart|force-reload)
+      log_daemon_msg "Restarting $DESC" "$NAME"
+      do_stop
+      case "$?" in
+          0|1)
+              do_start
+              case "$?" in
+                  0) log_end_msg 0 ;;
+              1) log_end_msg 1 ;; # Old process is still running
+          *) log_end_msg 1 ;; # Failed to start
+      esac
+      ;;
+  *)
+      # Failed to stop
+      log_end_msg 1
+      ;;
+    esac
+    ;;
 *)
-echo "Usage: /etc/init.d/ocserv {start|stop|restart|force-reload|status}"
-exit 1
-;;
+    echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
+    exit 3
+    ;;
 esac
 
 :
@@ -720,7 +789,7 @@ _EOF_
 }
 
 function ca_login_ocserv(){
-#make a client cert
+#generate a client cert
     print_info "Generating a client cert..."
     cd /etc/ocserv/CAforOC
     caname=`cat ca.tmpl | grep cn | cut -d '"' -f 2`
@@ -742,9 +811,10 @@ expiration_days = ${oc_ex_days}
 signing_key
 tls_www_client
 _EOF_
-#user key
+#two group then two unit,but IOS anyconnect does not surport. 
     [ "$open_two_group" = "y" ] && sed -i 's/^#//' user-${name_user_ca}/user.tmpl
-    certtool --generate-privkey --sec-param high --outfile user-${name_user_ca}/user-${name_user_ca}-key.pem
+#user key
+    openssl genrsa -out user-${name_user_ca}/user-${name_user_ca}-key.pem 1024
 #user cert
     certtool --generate-certificate --hash SHA256 --load-privkey user-${name_user_ca}/user-${name_user_ca}-key.pem --load-ca-certificate ca-cert.pem --load-ca-privkey ca-key.pem --template user-${name_user_ca}/user.tmpl --outfile user-${name_user_ca}/user-${name_user_ca}-cert.pem
 #p12
@@ -756,7 +826,7 @@ _EOF_
 }
 
 function empty_revocation_list(){
-#make a empty revocation list
+#generate a empty revocation list
     if [ ! -f crl.tmpl ];then
     cat << _EOF_ >crl.tmpl
 crl_next_update = 7777 
@@ -788,12 +858,19 @@ function set_ocserv_conf(){
     echo "route = 0.0.0.0/128.0.0.0" > /etc/ocserv/config-per-group/All
     echo "route = 128.0.0.0/128.0.0.0" >> /etc/ocserv/config-per-group/All
 #boot from the start 开机自启
-    [ "$ocserv_boot_start" = "y" ] && sudo insserv ocserv > /dev/null 2>&1
-#add a user 增加一个初始用户
+    [ "$ocserv_boot_start" = "y" ] && {
+    print_info "Enable ocserv service to start during bootup."
+    [ "$ocserv_systemd" = "y" ] && {
+    systemctl daemon-reload > /dev/null 2>&1
+    systemctl enable ocserv.service > /dev/null 2>&1 || sudo insserv ocserv > /dev/null 2>&1
+    }
+    [ "$ocserv_systemd" = "n" ] && sudo insserv ocserv > /dev/null 2>&1
+    }
+#add a user ，the plain login 增加一个初始用户，用户密码方式下
     [ "$ca_login" = "n" ] && plain_login_set
-#set only tcp-port 仅仅使用tcp端口
+#only tcp-port 仅仅使用tcp端口
     [ "$only_tcp_port" = "y" ] && sed -i 's|^[ \t]*\(udp-port = \)|#\1|' ${LOC_OC_CONF}
-#set ca_login
+#setup the cert login
     [ "$ca_login" = "y" ] && {
         sed -i 's|^[ \t]*\(auth = "plain\)|#\1|' ${LOC_OC_CONF}
         sed -i 's|^[# \t]*\(auth = "certificate"\)|\1|' ${LOC_OC_CONF}
@@ -974,6 +1051,8 @@ function reinstall_ocserv(){
     rm -rf /etc/ocserv
     rm -rf /usr/sbin/ocserv
     rm -rf /etc/init.d/ocserv
+    rm -rf /usr/bin/occtl
+    rm -rf /usr/bin/ocpasswd
     install_OpenConnect_VPN_server
 }
 
@@ -1097,17 +1176,21 @@ print_info " Help Info:  bash `basename $0` help"
 echo
 echo "==============================================================================================="
 
-#脚本所在文件夹
+#脚本所在文件夹 此处请不要改变
 Script_Dir="$(cd "$(dirname $0)"; pwd)"
 #fastmode vars 存放配置参数文件的绝对路径，快速安装模式可用
+#可以自定义
 CONFIG_PATH_VARS="${Script_Dir}/vars_ocservauto"
-#ocserv.conf path
+#ocserv.conf 绝对路径，此处请不要改变
 LOC_OC_CONF="/etc/ocserv/ocserv.conf"
 #ocserv配置文件所在的网络文件夹位置，请勿轻易改变
 NET_OC_CONF_DOC="https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/ocservauto"
 #推荐的默认版本
 Default_oc_version="0.10.4"
-#开启分组模式，证书以及用户名登录都会采取，证书分组模式ios有bug。
+#开启分组模式，每位用户都会分配到All组和Route组。
+#All走全局，Route将会绕过大陆。
+#证书以及用户名登录都会采取。
+#证书分组模式下，ios下anyconnect客户端有bug，请不要使用。
 open_two_group="n"
 
 #Initialization step
