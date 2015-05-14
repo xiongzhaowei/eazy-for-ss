@@ -1,4 +1,3 @@
-
 [Unit]
 Description=OpenConnect SSL VPN server
 Documentation=man:ocserv(8)
@@ -17,7 +16,7 @@ ExecReload=/bin/kill -HUP $MAINPID
 WantedBy=multi-user.target
 
 
-#Put this file to $PATH/lib/systemd/system
+#Put this file to /lib/systemd/system
 #systemctl daemon-reload
 #systemctl enable ocserv.service
 #systemctl start ocserv.service
