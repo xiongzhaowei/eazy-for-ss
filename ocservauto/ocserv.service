@@ -7,14 +7,15 @@ After=dbus.service
 [Service]
 PrivateTmp=true
 PIDFile=/var/run/ocserv.pid
-ExecStartPre=/bin/bash /etc/ocserv/start-ocserv-sysctl.sh
+ExecStartPre=/bin/bash /etc/ocserv/ocserv-up.sh
 ExecStart=/usr/sbin/ocserv --foreground --pid-file /var/run/ocserv.pid --config /etc/ocserv/ocserv.conf
-ExecStopPost=/bin/bash /etc/ocserv/stop-ocserv-sysctl.sh
+ExecStopPost=/bin/bash /etc/ocserv/ocserv-down.sh
 ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]
 WantedBy=multi-user.target
 
+#You cloud del /etc/init.d/ocserv
 #Put it to $PATH/lib/systemd/system
 #systemctl daemon-reload
 #systemctl enable ocserv.service
