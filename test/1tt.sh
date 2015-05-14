@@ -155,7 +155,7 @@ function check_install(){
         if (which "$Exe_N" > /dev/null 2>&1);then
             print_info "Check [ $Deb_N ] ok"
         else
-            DEBIAN_FRONTEND=noninteractive apt-get -qq -y install "$Deb_N"
+            DEBIAN_FRONTEND=noninteractive apt-get -qq -y install "$Deb_N" > /dev/null 2>&1
             apt-get clean
             print_info "Install [ $Deb_N ] ok"
         fi
@@ -447,7 +447,7 @@ EOF
         [ "$oc_D_V" = "trusty" ] || {
             oc_add_dependencies="$oc_add_dependencies libprotobuf-c-dev"
             [ "$oc_D_V" = "utopic" ] || {
-                [ "$oc_D_V" = "jessie" ] && oc_add_dependencies="$oc_add_dependencies gnutls-bin"
+                oc_add_dependencies="$oc_add_dependencies gnutls-bin"
             }
         }     
     }
@@ -1137,7 +1137,8 @@ oc_D_V=$(lsb_release -c -s)
 #[ "$oc_D_V" = "stretch" ] && return 0
 [ "$oc_D_V" = "trusty" ] && return 0
 [ "$oc_D_V" = "utopic" ] && return 0
-#[ "$oc_D_V" = "wily" ] && return 0
+[ "$oc_D_V" = "vivid" ] && return 0
+#[ "$oc_D_V" = "Wily" ] && return 0
 }
 
 ##################################################################################################################
