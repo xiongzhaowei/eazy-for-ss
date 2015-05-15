@@ -219,6 +219,10 @@ function check_Required(){
         print_info "Only test on ubuntu 14.04"
         oc_D_V="$(cat /etc/debian_version | cut -d/ -f1)"
     }
+#check systemd
+    ocserv_systemd="n"
+    pgrep systemd-journal > /dev/null 2>&1 && ocserv_systemd="y"
+    print_info "Systemd status : $ocserv_systemd"
 #check install 防止重复安装
     [ -f /usr/sbin/ocserv ] && die "Ocserv has been installed."
     print_info "Not installed ok"
@@ -575,6 +579,7 @@ esac
 :
 EOF
     chmod 755 /etc/init.d/ocserv
+    [ "$ocserv_systemd" = "y" ] && systemctl daemon-reload > /dev/null 2>&1
     cat > start-ocserv-sysctl.sh <<'EOF'
 #!/bin/bash
 
@@ -751,7 +756,13 @@ function set_ocserv_conf(){
     echo "route = 0.0.0.0/128.0.0.0" > /etc/ocserv/config-per-group/All
     echo "route = 128.0.0.0/128.0.0.0" >> /etc/ocserv/config-per-group/All
 #boot from the start 开机自启
-    [ "$ocserv_boot_start" = "y" ] && sudo insserv ocserv > /dev/null 2>&1
+    [ "$ocserv_boot_start" = "y" ] && {
+        print_info "Enable ocserv service to start during bootup."
+        [ "$ocserv_systemd" = "y" ] && {
+            systemctl enable ocserv.service > /dev/null 2>&1 || insserv ocserv > /dev/null 2>&1
+        }
+        [ "$ocserv_systemd" = "n" ] && insserv ocserv > /dev/null 2>&1
+    }
 #add a user 增加一个初始用户
     [ "$ca_login" = "n" ] && plain_login_set
 #set only tcp-port 仅仅使用tcp端口
