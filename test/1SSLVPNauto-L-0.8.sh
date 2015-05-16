@@ -265,8 +265,11 @@ function check_Required(){
 #only Debian 7+
     surport_Syscodename || die "Sorry, your system is too old or has not been tested."
     echo "SYS INFO" >>${Script_Dir}/ocerror.log
-    cat /etc/issue >>${Script_Dir}/ocerror.log
+    echo "" >>${Script_Dir}/ocerror.log
+    cat /etc/issue|sed '/^$/d' >>${Script_Dir}/ocerror.log
     echo "Codename : $oc_D_V" >>${Script_Dir}/ocerror.log
+    echo "" >>${Script_Dir}/ocerror.log
+    echo "ERROR INFO" >>${Script_Dir}/ocerror.log
     echo "" >>${Script_Dir}/ocerror.log
     print_info "Debian version ok"
 #check systemd
@@ -651,6 +654,7 @@ esac
 :
 EOF
     chmod 755 /etc/init.d/ocserv
+    [ "$ocserv_systemd" = "y" ] && systemctl daemon-reload > /dev/null 2>&1
     cat > ocserv-up.sh <<'EOF'
 #!/bin/bash
 
@@ -841,7 +845,6 @@ function set_ocserv_conf(){
     [ "$ocserv_boot_start" = "y" ] && {
         print_info "Enable ocserv service to start during bootup."
         [ "$ocserv_systemd" = "y" ] && {
-            systemctl daemon-reload > /dev/null 2>&1
             systemctl enable ocserv.service > /dev/null 2>&1 || insserv ocserv > /dev/null 2>&1
         }
         [ "$ocserv_systemd" = "n" ] && insserv ocserv > /dev/null 2>&1
