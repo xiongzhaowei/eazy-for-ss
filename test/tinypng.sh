@@ -8,7 +8,7 @@ DOC_NAME="Optimized"
 ###############
 #main begin
 function N_K(){
-    local IFS='|'
+    local IFS='/'
     for fn in $KG
     do
         newfn=`echo $fn|sed 'y/ /-/'|sed 's/^-*//'`
@@ -33,7 +33,7 @@ function UP_FILE(){
 Script_Dir="$(cd "$(dirname $0)"; pwd)"
 Front="${Script_Dir}/${DOC_NAME}"
 [ ! -d $Front ] && mkdir $Front
-KG=$(ls|egrep '.*\.(png|jpg|jpeg)$'|grep ' '|sed ':a;N;s/\n/|/;ba;')
+KG=$(ls|egrep '.*\.(png|jpg|jpeg)$'|grep ' '|sed ':a;N;s|\n|/|;ba;')
 [ "$KG" != "" ] && N_K
 UP_FILE
 #main end
