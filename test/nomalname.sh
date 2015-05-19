@@ -8,5 +8,5 @@ do
     mv "$fn" "$newfn"
 done
 }
-allfilename=`ls _F|grep _v '/$'|sed ':a;N;s|\n|/|;ba;'`
+allfilename=`ls -F|grep -v '/$'|sed ':a;N;s|\n|/|;ba;'`
 [ "$allfilename" = "" ] && N_K "/"
