@@ -11,7 +11,7 @@ function N_K(){
     local IFS='/'
     for fn in $KG
     do
-        newfn=`echo $fn|sed 'y/ /-/'|sed 's/^-*//'`
+        newfn=`echo $fn|sed 'y/ -/__/'`
         echo "From $(echo $fn|sed 's/ /\\ /g') to $newfn"
         mv "$fn" "$newfn"
     done
