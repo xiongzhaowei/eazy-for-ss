@@ -13,7 +13,7 @@ function N_K(){
     do
         newfn=`echo $fn|sed 'y/ /-/'|sed 's/^-*//'`
         echo "From $(echo $fn|sed 's/ /\\ /g') to $newfn"
-        mv $(echo $fn|sed 's/ /\\ /g') $newfn
+        mv "$fn" "$newfn"
     done
 }
 function UP_FILE(){
