@@ -9,4 +9,4 @@ do
 done
 }
 allfilename=`ls -F|grep -v '/$'|sed ':a;N;s|\n|/|;ba;'`
-[ "$allfilename" = "" ] && N_K "/"
+[ "$allfilename" != "" ] && N_K "/"
