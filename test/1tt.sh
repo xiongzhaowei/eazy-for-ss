@@ -516,8 +516,8 @@ function tar_ocserv_install(){
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          ocserv
-# Required-Start:    $network $local_fs $remote_fs $syslog
-# Required-Stop:     $remote_fs $syslog
+# Required-Start:    $network $remote_fs $syslog
+# Required-Stop:     $network $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: ocserv
@@ -992,9 +992,9 @@ function Outdate_Autoclean(){
     do
         Client_EX_Date=`openssl x509 -noout -enddate -in ${My_One_Ca}/${My_One_Ca}-cert.pem | cut -d= -f2`
         Client_EX_Date=`date -d "${Client_EX_Date}" +%s`
-        if [ ${Client_EX_Date} -lt ${Today_Date} ]; then
+        [ ${Client_EX_Date} -lt ${Today_Date} ] && {
             mv ${My_One_Ca} -t revoke/
-        fi
+        }
     done
 }
 
