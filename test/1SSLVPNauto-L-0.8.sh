@@ -271,7 +271,7 @@ function check_Required(){
     echo "" >>${Script_Dir}/ocerror.log
     echo "ERROR INFO" >>${Script_Dir}/ocerror.log
     echo "" >>${Script_Dir}/ocerror.log
-    print_info "Debian version ok"
+    print_info "Distro ok"
 #check systemd
     ocserv_systemd="n"
     pgrep systemd-journal > /dev/null 2>&1 && ocserv_systemd="y"
@@ -444,7 +444,8 @@ APT::Install-Suggests "false";
 APT::Get::Install-Recommends "false";
 APT::Get::Install-Suggests "false";
 EOF
-#gnutls-bin于debian7/ubuntu太旧，无法实现证书同属多组模式，即OU只能一个的问题。
+#gnutls-bin(certtool) is too old on wheezy/trusty/utopic,bugs with only one OU etc
+#gnutls-bin（certtool）于wheezy/trusty/utopic太旧，OU只能一个的等等问题
     [ "$oc_D_V" = "wheezy" ] || {
         oc_add_dependencies="libgnutls28-dev libseccomp-dev libhttp-parser-dev libkrb5-dev"
         [ "$oc_D_V" = "trusty" ] || {
@@ -471,19 +472,16 @@ EOF
     }
 #install freeradius-client-1.1.7
     tar_freeradius_client_install
-#install dependencies lz4  增加lz4压缩必须包
-#libprotobuf-c-dev libhttp-parser-dev
-#lz4
+#install lz4
     tar_lz4_install
-#clean file
+#clean
     apt-get autoremove -qq -y && apt-get clean
-#keep update
     rm -f /etc/apt/preferences.d/my_ocserv_preferences
     rm -f /etc/apt/apt.conf.d/77ocserv
     print_info "Dependencies  ok"
 }
 
-#install 编译安装
+#install ocserv 编译安装
 function tar_ocserv_install(){
     cd ${Script_Dir}
 #default max route rulers
@@ -518,8 +516,8 @@ function tar_ocserv_install(){
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          ocserv
-# Required-Start:    $network $local_fs $remote_fs $syslog
-# Required-Stop:     $remote_fs $syslog
+# Required-Start:    $network $remote_fs $syslog
+# Required-Stop:     $network $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: ocserv
@@ -738,6 +736,7 @@ function make_ocserv_ca(){
     coname=${coname:-ocvpn}
     fqdnname=${fqdnname:-$ocserv_hostname}
 #generating the CA 制作自签证书授权中心
+#crl_dist_points ocserv并不支持在线crl吊销列表
     openssl genrsa -out ca-key.pem 4096
     cat << _EOF_ > ca.tmpl
 cn = "$caname"
@@ -776,7 +775,7 @@ function ca_login_ocserv(){
 #generate a client cert
     print_info "Generating a client cert..."
     cd /etc/ocserv/CAforOC
-    caname=`cat ca.tmpl | grep cn | cut -d '"' -f 2`
+    caname=`openssl x509 -noout -text -in ca-cert.pem|grep Subject|sed -n 's/.*CN=\([^/,]*\).*/\1/p'`
     if [ "X${caname}" = "X" ]; then
         Default_Ask "Tell me your CA's name." "ocvpn" "caname"
     fi
@@ -811,16 +810,16 @@ _EOF_
 
 function empty_revocation_list(){
 #generate a empty revocation list
-    if [ ! -f crl.tmpl ];then
+    [ ! -f crl.tmpl ] && {
     cat << _EOF_ >crl.tmpl
 crl_next_update = 7777 
 crl_number = 1 
 _EOF_
     certtool --generate-crl --load-ca-privkey ca-key.pem --load-ca-certificate ca-cert.pem --template crl.tmpl --outfile ../crl.pem
-    fi
+    }
 }
 
-#set 设定相关参数
+#modify config file 设定相关参数
 function set_ocserv_conf(){
 #default vars
     ocserv_tcpport_set=${ocserv_tcpport_set:-999}
@@ -987,14 +986,15 @@ function get_new_userca_show(){
 
 function Outdate_Autoclean(){
     My_All_Ca=`ls -F|sed -n 's/\(user-.*\)\//\1/p'|sed ':a;N;s/\n/ /;ba;'`
-    for My_One_Ca in $My_All_Ca
+    Today_Date=`date`
+    Today_Date=`date -d "${Today_Date}" +%s`
+    for My_One_Ca in ${My_All_Ca}
     do
-        Client_EX_Days=`sed -n 's/.*days = //p' $My_One_Ca/user.tmpl`
-        Client_Ifsign_Date=`expr $(date +%Y%m%d -d "-$Client_EX_Days day")`
-        Client_Truesign_Date=`expr $(date -r $My_One_Ca/user.tmpl +%Y%m%d)`
-        if [ $Client_Truesign_Date -lt $Client_Ifsign_Date ]; then
-            mv $My_One_Ca -t revoke/
-        fi
+        Client_EX_Date=`openssl x509 -noout -enddate -in ${My_One_Ca}/${My_One_Ca}-cert.pem | cut -d= -f2`
+        Client_EX_Date=`date -d "${Client_EX_Date}" +%s`
+        [ ${Client_EX_Date} -lt ${Today_Date} ] && {
+            mv ${My_One_Ca} -t revoke/
+        }
     done
 }
 
@@ -1122,7 +1122,7 @@ function help_ocservauto(){
     echo
     print_info " pc ---------------------------- At the same time,enable the plain and the certificate login"
     echo
-    print_info " occ --------------------------- Using a existing CA as the clientcert authentication mechanism"
+    print_info " occ --------------------------- Verify client certificates through a existing CA"
     echo
     print_info " help or h --------------------- Show this description"
     print_xxxx
@@ -1141,7 +1141,11 @@ oc_D_V=$(lsb_release -c -s)
 [ "$oc_D_V" = "trusty" ] && return 0
 [ "$oc_D_V" = "utopic" ] && return 0
 [ "$oc_D_V" = "vivid" ] && return 0
-#[ "$oc_D_V" = "Wily" ] && return 0
+#[ "$oc_D_V" = "wily" ] && return 0
+
+
+#TEST NEWER SYS.
+#[ "$oc_D_V" = "$oc_D_V" ] && return 0
 }
 
 ##################################################################################################################
