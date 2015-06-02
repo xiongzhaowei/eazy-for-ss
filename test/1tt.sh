@@ -1038,15 +1038,15 @@ function reinstall_ocserv(){
 }
 
 function upgrade_ocserv(){    
-    get_info_from_net
-    Default_Ask "The latest is ${OC_version_latest}.Input the version you want to upgrade?" "$OC_version_latest" "oc_version"
+    check_Required
+    Default_Ask "The latest is ${OC_version_latest} ,Input the version you want to upgrade?" "$OC_version_latest" "oc_version"
     Default_Ask "The maximum number of routing table rules?" "200" "max_router"
     press_any_key
     stop_ocserv
     rm -f /etc/ocserv/profile.xml
     rm -f /usr/sbin/ocserv
     tar_ocserv_install
-    pgrep systemd-journal > /dev/null 2>&1 && systemctl daemon-reload > /dev/null 2>&1
+    [ "$ocserv_systemd" = "y" ] && systemctl daemon-reload > /dev/null 2>&1
     start_ocserv
     ps cax | grep ocserv > /dev/null 2>&1
     if [ $? -eq 0 ]; then
