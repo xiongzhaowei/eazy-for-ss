@@ -253,8 +253,6 @@ function check_Required(){
 #check install 防止重复安装
     [ -f /usr/sbin/ocserv ] && die "Ocserv has been installed."
     print_info "Not installed ok"
-#del ocerror.log
-    [ -f ${Script_Dir}/ocerror.log ] && rm -r ${Script_Dir}/ocerror.log
 #install base-tools 
     print_info "Installing base-tools......"
     apt-get update  -qq
@@ -264,13 +262,7 @@ function check_Required(){
     print_info "Get base-tools ok"
 #only Debian 7+
     surport_Syscodename || die "Sorry, your system is too old or has not been tested."
-    echo "SYS INFO" >>${Script_Dir}/ocerror.log
-    echo "" >>${Script_Dir}/ocerror.log
-    cat /etc/issue|sed '/^$/d' >>${Script_Dir}/ocerror.log
-    echo "Codename : $oc_D_V" >>${Script_Dir}/ocerror.log
-    echo "" >>${Script_Dir}/ocerror.log
-    echo "ERROR INFO" >>${Script_Dir}/ocerror.log
-    echo "" >>${Script_Dir}/ocerror.log
+    log_Start
     print_info "Distro ok"
 #check systemd
     ocserv_systemd="n"
@@ -286,6 +278,16 @@ function check_Required(){
     get_info_from_net
     print_info "Get info ok"
     clear
+}
+
+function log_Start(){
+    echo "SYS INFO" >${Script_Dir}/ocerror.log
+    echo "" >>${Script_Dir}/ocerror.log
+    sed '/^$/d' /etc/issue >>${Script_Dir}/ocerror.log
+    uname -r >>${Script_Dir}/ocerror.log
+    echo "" >>${Script_Dir}/ocerror.log
+    echo "ERROR INFO" >>${Script_Dir}/ocerror.log
+    echo "" >>${Script_Dir}/ocerror.log
 }
 
 function get_info_from_net(){
@@ -525,7 +527,7 @@ function tar_ocserv_install(){
 #                    Cisco AnyConnect VPN.
 ### END INIT INFO
 
-# Author: Max Lv <max.c.lv@gmail.com>
+# Author: liyangyijie <liyangyijie@gmail.com>
 
 # PATH should only include /usr/ if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
@@ -1041,13 +1043,15 @@ function reinstall_ocserv(){
 
 function upgrade_ocserv(){    
     get_info_from_net
-    Default_Ask "The latest is ${OC_version_latest}.Input the version you want to upgrade?" "$OC_version_latest" "oc_version"
+    log_Start
+    Default_Ask "The latest is ${OC_version_latest} ,Input the version you want to upgrade?" "$OC_version_latest" "oc_version"
     Default_Ask "The maximum number of routing table rules?" "200" "max_router"
     press_any_key
     stop_ocserv
     rm -f /etc/ocserv/profile.xml
     rm -f /usr/sbin/ocserv
     tar_ocserv_install
+    pgrep systemd-journal > /dev/null 2>&1 && systemctl daemon-reload > /dev/null 2>&1
     start_ocserv
     ps cax | grep ocserv > /dev/null 2>&1
     if [ $? -eq 0 ]; then
@@ -1142,9 +1146,7 @@ oc_D_V=$(lsb_release -c -s)
 [ "$oc_D_V" = "utopic" ] && return 0
 [ "$oc_D_V" = "vivid" ] && return 0
 #[ "$oc_D_V" = "wily" ] && return 0
-
-
-#TEST NEWER SYS.
+#TEST NEWER SYS
 #[ "$oc_D_V" = "$oc_D_V" ] && return 0
 }
 
