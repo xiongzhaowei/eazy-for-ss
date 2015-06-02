@@ -283,7 +283,8 @@ function check_Required(){
 function log_Start(){
     echo "SYS INFO" >${Script_Dir}/ocerror.log
     echo "" >>${Script_Dir}/ocerror.log
-    cat /etc/issue|sed '/^$/d' >>${Script_Dir}/ocerror.log
+    sed '/^$/d' /etc/issue >>${Script_Dir}/ocerror.log
+    uname -r >>${Script_Dir}/ocerror.log
     echo "" >>${Script_Dir}/ocerror.log
     echo "ERROR INFO" >>${Script_Dir}/ocerror.log
     echo "" >>${Script_Dir}/ocerror.log
