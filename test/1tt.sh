@@ -514,217 +514,31 @@ function tar_ocserv_install(){
     rm -rf ocserv-$oc_version
 #get or set config file
     cd /etc/ocserv
-    cat > /etc/init.d/ocserv <<'EOF'
-#!/bin/sh
-### BEGIN INIT INFO
-# Provides:          ocserv
-# Required-Start:    $network $remote_fs $syslog
-# Required-Stop:     $network $remote_fs $syslog
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
-# Short-Description: ocserv
-# Description:       OpenConnect VPN server compatible with
-#                    Cisco AnyConnect VPN.
-### END INIT INFO
-
-# Author: liyangyijie <liyangyijie@gmail.com>
-
-# PATH should only include /usr/ if it runs after the mountnfs.sh script
-PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC=ocserv
-NAME=ocserv
-DAEMON=/usr/sbin/ocserv
-DAEMON_ARGS=""
-CONFFILE="/etc/ocserv/ocserv.conf"
-PIDFILE=/var/run/$NAME/$NAME.pid
-SCRIPTNAME=/etc/init.d/$NAME
-SERVER_UP="/etc/ocserv/ocserv-up.sh"
-SERVER_DOWN="/etc/ocserv/ocserv-down.sh"
-
-# Exit if the package is not installed
-[ -x $DAEMON ] || exit 0
-
-: ${USER:="root"}
-: ${GROUP:="root"}
-
-# Load the VERBOSE setting and other rcS variables
-. /lib/init/vars.sh
-
-# Define LSB log_* functions.
-# Depend on lsb-base (>= 3.0-6) to ensure that this file is present.
-. /lib/lsb/init-functions
-
-#
-# Function that starts the daemon/service
-#
-do_start()
-{
-    # Add server up script
-    [ -x ${SERVER_UP} ] && . ${SERVER_UP}
-
-    # Take care of pidfile permissions
-    mkdir /var/run/$NAME 2>/dev/null || true
-    chown "$USER:$GROUP" /var/run/$NAME
-
-    # Return
-    #   0 if daemon has been started
-    #   1 if daemon was already running
-    #   2 if daemon could not be started
-    start-stop-daemon --start --quiet --pidfile $PIDFILE --chuid $USER:$GROUP --exec $DAEMON --test > /dev/null \
-        || return 1
-    start-stop-daemon --start --quiet --pidfile $PIDFILE --chuid $USER:$GROUP --exec $DAEMON -- \
-        -c "$CONFFILE" $DAEMON_ARGS \
-        || return 2
-}
-
-#
-# Function that stops the daemon/service
-#
-do_stop()
-{
-    # Add server down script
-    [ -x ${SERVER_DOWN} ] && . ${SERVER_DOWN}
-    
-    # Return
-    #   0 if daemon has been stopped
-    #   1 if daemon was already stopped
-    #   2 if daemon could not be stopped
-    #   other if a failure occurred
-    start-stop-daemon --stop --quiet --retry=KILL/5 --pidfile $PIDFILE --exec $DAEMON
-    RETVAL="$?"
-    [ "$RETVAL" = 2 ] && return 2
-    # Wait for children to finish too if this is a daemon that forks
-    # and if the daemon is only ever run from this initscript.
-    # If the above conditions are not satisfied then add some other code
-    # that waits for the process to drop all resources that could be
-    # needed by services started subsequently.  A last resort is to
-    # sleep for some time.
-    start-stop-daemon --stop --quiet --oknodo --retry=KILL/5 --exec $DAEMON
-    [ "$?" = 2 ] && return 2
-    # Many daemons don't delete their pidfiles when they exit.
-    rm -f $PIDFILE
-    return "$RETVAL"
-}
-
-
-case "$1" in
-    start)
-        [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC " "$NAME"
-        do_start
-        case "$?" in
-            0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-        2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-    esac
-    ;;
-stop)
-    [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
-    do_stop
-    case "$?" in
-        0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-    2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-esac
-;;
-  status)
-      status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
-      ;;
-  restart|force-reload)
-      log_daemon_msg "Restarting $DESC" "$NAME"
-      do_stop
-      case "$?" in
-          0|1)
-              do_start
-              case "$?" in
-                  0) log_end_msg 0 ;;
-              1) log_end_msg 1 ;; # Old process is still running
-          *) log_end_msg 1 ;; # Failed to start
-      esac
-      ;;
-  *)
-      # Failed to stop
-      log_end_msg 1
-      ;;
-    esac
-    ;;
-*)
-    echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
-    exit 3
-    ;;
-esac
-
-:
-EOF
-    chmod 755 /etc/init.d/ocserv
-    [ "$ocserv_systemd" = "y" ] && systemctl daemon-reload > /dev/null 2>&1
-    cat > ocserv-up.sh <<'EOF'
-#!/bin/bash
-
-#vars
-OCSERV_CONFIG="/etc/ocserv/ocserv.conf"
-
-# turn on IP forwarding
-#sysctl -w net.ipv6.conf.all.forwarding=1 > /dev/null 2>&1
-sysctl -w net.ipv4.ip_forward=1 > /dev/null 2>&1
-
-#get gateway and profiles
-gw_intf_oc=`ip route show|sed -n 's/^default.* dev \([^ ]*\).*/\1/p'`
-ocserv_tcpport=`sed -n 's/^tcp-.*=[ \t]*//p' $OCSERV_CONFIG`
-ocserv_udpport=`sed -n 's/^udp-.*=[ \t]*//p' $OCSERV_CONFIG`
-ocserv_ip4_work_mask=`sed -n 's/^ipv4-.*=[ \t]*//p' $OCSERV_CONFIG|sed 'N;s|\n|/|g'`
-
-# turn on NAT over default gateway and VPN
-if !(iptables-save -t nat | grep -q "$gw_intf_oc (ocserv)"); then
-iptables -t nat -A POSTROUTING -s $ocserv_ip4_work_mask -o $gw_intf_oc -m comment --comment "$gw_intf_oc (ocserv)" -j MASQUERADE
-fi
-
-if !(iptables-save -t filter | grep -q "$gw_intf_oc (ocserv2)"); then
-iptables -A FORWARD -s $ocserv_ip4_work_mask -m comment --comment "$gw_intf_oc (ocserv2)" -j ACCEPT
-fi
-
-if !(iptables-save -t filter | grep -q "$gw_intf_oc (ocserv3)"); then
-iptables -A INPUT -p tcp --dport $ocserv_tcpport -m comment --comment "$gw_intf_oc (ocserv3)" -j ACCEPT
-fi
-
-if [ "$ocserv_udpport" != "" ]; then
-    if !(iptables-save -t filter | grep -q "$gw_intf_oc (ocserv4)"); then
-        iptables -A INPUT -p udp --dport $ocserv_udpport -m comment --comment "$gw_intf_oc (ocserv4)" -j ACCEPT
-    fi
-fi
-
-if !(iptables-save -t filter | grep -q "$gw_intf_oc (ocserv5)"); then
-iptables -A FORWARD  -m state --state RELATED,ESTABLISHED -m comment --comment "$gw_intf_oc (ocserv5)" -j ACCEPT
-fi
-
-# turn on MSS fix
-# MSS = MTU - TCP header - IP header
-if !(iptables-save -t mangle | grep -q "$gw_intf_oc (ocserv6)"); then
-iptables -t mangle -A FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -m comment --comment "$gw_intf_oc (ocserv6)" -j TCPMSS --clamp-mss-to-pmtu
-fi
-EOF
-    chmod +x ocserv-up.sh
-    cat > ocserv-down.sh <<'EOF'
-#!/bin/bash
-
-# uncomment if you want to turn off IP forwarding
-# sysctl -w net.ipv4.ip_forward=0
-
-#del iptables
-
-iptables-save | grep 'ocserv' | sed 's/^-A P/iptables -t nat -D P/' | sed 's/^-A FORWARD -p/iptables -t mangle -D FORWARD -p/' | sed 's/^-A/iptables -D/' | bash
-EOF
-    chmod +x ocserv-down.sh
-    while [ ! -f ocserv.conf ]; do
-        wget -c $NET_OC_CONF_DOC/ocserv.conf --no-check-certificate
-    done
-    while [ ! -f config-per-group/Route ]; do
-        wget -c $NET_OC_CONF_DOC/routerulers -O config-per-group/Route --no-check-certificate
-    done
-    if [ ! -f dh.pem ]; then
+    [ ! -f /etc/init.d/ocserv ] && {
+        wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv
+        chmod 755 /etc/init.d/ocserv
+        [ "$ocserv_systemd" = "y" ] && systemctl daemon-reload > /dev/null 2>&1
+    }
+    [ ! -f ocserv-up.sh ] && {
+        wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv-up.sh
+        chmod +x ocserv-up.sh
+    }
+    [ ! -f ocserv-down.sh ] && {
+        wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv-down.sh
+        chmod +x ocserv-down.sh
+    }
+    [ ! -f ocserv.conf ] && {
+        wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv.conf
+    }
+    [ ! -f config-per-group/Route ] && {
+        wget -c --no-check-certificate $NET_OC_CONF_DOC/Route -O config-per-group/Route
+    }
+    [ ! -f dh.pem ] && {
         print_info "Perhaps generate DH parameters will take some time , please wait..."
         certtool --generate-dh-params --sec-param high --outfile dh.pem
-    fi
+    }
     clear
     print_info "Ocserv install ok"
-    
 }
 
 function make_ocserv_ca(){
