@@ -4,8 +4,8 @@ die(){ echo -e "\033[33mERROR: $1 \033[0m" > /dev/null 1>&2;exit 1;};print_info(
 #main
 [ $EUID -ne 0 ] && die 'Must be run by root user.'
 [ ! -f /etc/debian_version ] && die "Must be run on a Debian-based system."
-Default_Ask "Input your username." "username" "$(get_random_word 8)"
-Default_Ask "Input your password." "password" "$(get_random_word 8)"
+Default_Ask "Input your username." "$(get_random_word 8)" "username"
+Default_Ask "Input your password." "$(get_random_word 8)" "password"
 press_any_key
 apt-get update
 DEBIAN_FRONTEND=noninteractive apt-get -y install libffi-dev libssl-dev
