@@ -515,7 +515,7 @@ function tar_ocserv_install(){
 #get or set config file
     cd /etc/ocserv
     [ ! -f /etc/init.d/ocserv ] && {
-        wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv
+        wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv -O /etc/init.d/ocserv
         chmod 755 /etc/init.d/ocserv
         [ "$ocserv_systemd" = "y" ] && systemctl daemon-reload > /dev/null 2>&1
     }
