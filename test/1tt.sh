@@ -262,7 +262,6 @@ function check_Required(){
     print_info "Get base-tools ok"
 #only Debian 7+
     surport_Syscodename || die "Sorry, your system is too old or has not been tested."
-    log_Start
     print_info "Distro ok"
 #check systemd
     ocserv_systemd="n"
@@ -369,7 +368,6 @@ function Dependencies_install_onebyone(){
             apt-get clean
         else
             print_warn "[ ${OC_DP} ] not be installed!"
-            echo "[ ${OC_DP} ] not be installed!" >>${Script_Dir}/ocerror.log
         fi
     done
 }
@@ -494,10 +492,10 @@ function tar_ocserv_install(){
     tar xvf ocserv-$oc_version.tar.xz
     rm -rf ocserv-$oc_version.tar.xz
     cd ocserv-$oc_version
-#have to use "" then $ work ,set router limit 设定路由规则最大限制
+#set route limit 设定路由规则最大限制
     sed -i "s|\(#define MAX_CONFIG_ENTRIES \).*|\1$max_router|" src/vpn.h
-    ./configure --prefix=/usr --sysconfdir=/etc 2>>${Script_Dir}/ocerror.log
-    make -j"$(nproc)" 2>>${Script_Dir}/ocerror.log
+    ./configure --prefix=/usr --sysconfdir=/etc
+    make -j"$(nproc)"
     make install
 #check install 检测编译安装是否成功
     [ ! -f /usr/sbin/ocserv ] && {
@@ -505,7 +503,6 @@ function tar_ocserv_install(){
         die "Ocserv install failure,check ${Script_Dir}/ocerror.log"
     }
 #mv files
-#    rm -f ${Script_Dir}/ocerror.log
     mkdir -p /etc/ocserv/CAforOC/revoke > /dev/null 2>&1
     mkdir /etc/ocserv/{config-per-group,defaults} > /dev/null 2>&1
     cp doc/profile.xml /etc/ocserv
@@ -1002,13 +999,15 @@ action=$1
 [  -z $1 ] && action=install
 case "$action" in
 install)
-    install_OpenConnect_VPN_server
+    log_Start
+    install_OpenConnect_VPN_server | tee -a ${Script_Dir}/ocerror.log
     ;;
 fastmode | fm)
-    fast_install="y"
     [ ! -f $CONFIG_PATH_VARS ] && die "$CONFIG_PATH_VARS Not Found !"
+    fast_install="y"
     . $CONFIG_PATH_VARS
-    install_OpenConnect_VPN_server
+    log_Start
+    install_OpenConnect_VPN_server | tee -a ${Script_Dir}/ocerror.log
     ;;
 getuserca | gc)
     get_new_userca
@@ -1021,13 +1020,15 @@ upgrade | ug)
     upgrade_ocserv
     ;;
 reinstall | ri)
-    reinstall_ocserv
+    log_Start
+    reinstall_ocserv | tee -a ${Script_Dir}/ocerror.log
     ;;
 pc)
     enable_both_login
     ;;
 occ)
-    install_Oneclientcer
+    log_Start
+    install_Oneclientcer | tee -a ${Script_Dir}/ocerror.log
     ;;
 help | h)
     help_ocservauto
