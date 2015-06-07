@@ -579,6 +579,8 @@ _EOF_
     certtool --generate-certificate --hash SHA256 --load-privkey server-key.pem --load-ca-certificate ca-cert.pem --load-ca-privkey ca-key.pem --template server.tmpl --outfile server-cert.pem
     [ ! -f server-cert.pem ] && die "server-cert.pem NOT Found , make failure!"
     [ ! -f server-key.pem ] && die "server-key.pem NOT Found , make failure!"
+#自签证书完善证书链
+    cat ca-cert.pem >> server-cert.pem
     cp server-cert.pem /etc/ocserv && cp server-key.pem /etc/ocserv
     cp ca-cert.pem /etc/ocserv
     print_info "Self-signed CA for ocserv ok"
@@ -767,7 +769,7 @@ function show_ocserv(){
         print_warn "6,You could start ocserv by ' /etc/init.d/ocserv start '!"
         print_warn "7,Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
     else
-        print_warn "Ocserv start failure,ocserv is offline!"
+        die "Ocserv start failure,check ${Script_Dir}/ocinstall.log"
     fi
 }
 
