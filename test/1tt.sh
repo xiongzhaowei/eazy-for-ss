@@ -280,13 +280,13 @@ function check_Required(){
 }
 
 function log_Start(){
-    echo "SYS INFO" >${Script_Dir}/ocerror.log
-    echo "" >>${Script_Dir}/ocerror.log
-    sed '/^$/d' /etc/issue >>${Script_Dir}/ocerror.log
-    uname -r >>${Script_Dir}/ocerror.log
-    echo "" >>${Script_Dir}/ocerror.log
-    echo "ERROR INFO" >>${Script_Dir}/ocerror.log
-    echo "" >>${Script_Dir}/ocerror.log
+    echo "SYS INFO" >${Script_Dir}/ocinstall.log
+    echo "" >>${Script_Dir}/ocinstall.log
+    sed '/^$/d' /etc/issue >>${Script_Dir}/ocinstall.log
+    uname -r >>${Script_Dir}/ocinstall.log
+    echo "" >>${Script_Dir}/ocinstall.log
+    echo "INSTALL INFO" >>${Script_Dir}/ocinstall.log
+    echo "" >>${Script_Dir}/ocinstall.log
 }
 
 function get_info_from_net(){
@@ -500,7 +500,7 @@ function tar_ocserv_install(){
 #check install 检测编译安装是否成功
     [ ! -f /usr/sbin/ocserv ] && {
         make clean
-        die "Ocserv install failure,check ${Script_Dir}/ocerror.log"
+        die "Ocserv install failure,check ${Script_Dir}/ocinstall.log"
     }
 #mv files
     mkdir -p /etc/ocserv/CAforOC/revoke > /dev/null 2>&1
@@ -1000,14 +1000,26 @@ action=$1
 case "$action" in
 install)
     log_Start
-    install_OpenConnect_VPN_server | tee -a ${Script_Dir}/ocerror.log
+    install_OpenConnect_VPN_server | tee -a ${Script_Dir}/ocinstall.log
     ;;
 fastmode | fm)
     [ ! -f $CONFIG_PATH_VARS ] && die "$CONFIG_PATH_VARS Not Found !"
     fast_install="y"
     . $CONFIG_PATH_VARS
     log_Start
-    install_OpenConnect_VPN_server | tee -a ${Script_Dir}/ocerror.log
+    install_OpenConnect_VPN_server | tee -a ${Script_Dir}/ocinstall.log
+    ;;
+upgrade | ug)
+    log_Start
+    upgrade_ocserv | tee -a ${Script_Dir}/ocinstall.log
+    ;;
+reinstall | ri)
+    log_Start
+    reinstall_ocserv | tee -a ${Script_Dir}/ocinstall.log
+    ;;
+occ)
+    log_Start
+    install_Oneclientcer | tee -a ${Script_Dir}/ocinstall.log
     ;;
 getuserca | gc)
     get_new_userca
@@ -1016,19 +1028,8 @@ getuserca | gc)
 revokeuserca | rc)
     revoke_userca
     ;;
-upgrade | ug)
-    upgrade_ocserv
-    ;;
-reinstall | ri)
-    log_Start
-    reinstall_ocserv | tee -a ${Script_Dir}/ocerror.log
-    ;;
 pc)
     enable_both_login
-    ;;
-occ)
-    log_Start
-    install_Oneclientcer | tee -a ${Script_Dir}/ocerror.log
     ;;
 help | h)
     help_ocservauto
