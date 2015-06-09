@@ -196,7 +196,7 @@ function install_OpenConnect_VPN_server(){
 #make a client cert 若证书登录则制作客户端证书
     [ "$ca_login" = "y" ] && {
         [ "$self_signed_ca" = "y" ] && {
-            ca_login_ocserv
+            ca_login_clientcert
         }
     }
 #configuration 设定软件相关选项
@@ -586,7 +586,7 @@ _EOF_
     print_info "Self-signed CA for ocserv ok"
 }
 
-function ca_login_ocserv(){
+function ca_login_clientcert(){
 #generate a client cert
     print_info "Generating a client cert..."
     cd /etc/ocserv/CAforOC
@@ -776,11 +776,14 @@ function check_ca_cert(){
 
 function get_new_userca(){
     check_ca_cert
-    ca_login="y"
-    self_signed_ca="y"
+    character_Test ${LOC_OC_CONF} 'auth = "plain' && {
+        character_Test ${LOC_OC_CONF} 'enable-auth = certificate' || {
+            die "You have to enable the the certificate login at first."
+        }
+    ca_login="y" && self_signed_ca="y"
     add_a_user
     press_any_key
-    ca_login_ocserv
+    ca_login_clientcert
     clear
     echo
 }
