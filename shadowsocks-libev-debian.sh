@@ -69,9 +69,9 @@ fi
 function pre_install(){
 #base-tool
 apt-get update
-echo linux-image-`uname -r` hold | sudo dpkg --set-selections
+echo linux-image-`uname -r` hold | dpkg --set-selections
 apt-get upgrade -y
-echo linux-image-`uname -r` install | sudo dpkg --set-selections
+echo linux-image-`uname -r` install | dpkg --set-selections
 apt-get install -y -qq sudo nano sed vim gawk curl dnsutils apt-transport-https net-tools
 #tcp choice
 #load hybla
@@ -143,7 +143,7 @@ if [ $? -ne 0 ]; then
         echo "deb http://shadowsocks.org/debian wheezy main" >> /etc/apt/sources.list
     fi
 #add gpg
-    wget -O- http://shadowsocks.org/debian/1D27208A.gpg | sudo apt-key add -
+    wget -O- http://shadowsocks.org/debian/1D27208A.gpg | apt-key add -
 fi
 clear
 }
