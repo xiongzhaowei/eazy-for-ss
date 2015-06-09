@@ -8,10 +8,9 @@ Default_Ask "Input your username." "$(get_random_word 8)" "username"
 Default_Ask "Input your password." "$(get_random_word 8)" "password"
 press_any_key
 apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get -y install gcc libffi-dev libssl-dev python-dev python-gevent python-setuptools
+DEBIAN_FRONTEND=noninteractive apt-get -y install python-dev python-gevent python-setuptools python-openssl
 easy_install dnslib
 easy_install pycrypto
-easy_install pyOpenSSL==0.13
 #https://github.com/goagent/goagent/blob/3.0/server/uploadvps.py 44-68行
 NET_URL="https://raw.githubusercontent.com/goagent/goagent/3.0"
 mkdir -p /opt/goagent/{vps,log}
