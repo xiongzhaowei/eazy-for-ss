@@ -776,11 +776,6 @@ function check_ca_cert(){
 
 function get_new_userca(){
     check_ca_cert
-    character_Test ${LOC_OC_CONF} 'auth = "plain' && {
-        character_Test ${LOC_OC_CONF} 'enable-auth = certificate' || {
-            die "You have to enable the the certificate login at first."
-        }
-    }
     ca_login="y" && self_signed_ca="y"
     add_a_user
     press_any_key
@@ -1024,6 +1019,11 @@ occ)
     install_Oneclientcer | tee -a ${Script_Dir}/ocinstall.log
     ;;
 getuserca | gc)
+    character_Test ${LOC_OC_CONF} 'auth = "plain' && {
+        character_Test ${LOC_OC_CONF} 'enable-auth = certificate' || {
+            die "You have to enable the the certificate login at first."
+        }
+    }
     get_new_userca
     get_new_userca_show
     ;;
