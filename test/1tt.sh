@@ -780,6 +780,7 @@ function get_new_userca(){
         character_Test ${LOC_OC_CONF} 'enable-auth = certificate' || {
             die "You have to enable the the certificate login at first."
         }
+    }
     ca_login="y" && self_signed_ca="y"
     add_a_user
     press_any_key
