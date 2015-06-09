@@ -730,7 +730,7 @@ function show_ocserv(){
     echo
     ps cax | grep ocserv > /dev/null 2>&1
     if [ $? -eq 0 ]; then
-        echo -e "\033[41;37mOcserv Server Domain :\033[0m\t\t$fqdnname:$ocserv_port"
+        echo -e "\033[41;37mYour Server Domain :\033[0m\t\t$fqdnname:$ocserv_port"
         if [ "$ca_login" = "y" ]; then
             get_new_userca_show
         else
