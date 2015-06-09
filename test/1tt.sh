@@ -727,47 +727,42 @@ function start_ocserv(){
 function show_ocserv(){
     ocserv_port=`sed -n 's/^[ \t]*tcp-port[ \t]*=[ \t]*//p' ${LOC_OC_CONF}`
     clear
+    echo
     ps cax | grep ocserv > /dev/null 2>&1
     if [ $? -eq 0 ]; then
+        echo -e "\033[41;37mOcserv Server Domain :\033[0m\t\t$fqdnname:$ocserv_port"
         if [ "$ca_login" = "y" ]; then
-            echo ""
-            echo -e "\033[41;37m Your server domain is \033[0m" "$fqdnname:$ocserv_port"
-            echo -e "\033[41;37m Your p12-cert's password is \033[0m" "$password"
-            echo -e "\033[41;37m Your p12-cert's number of expiration days is \033[0m" "$oc_ex_days"
-            print_warn "You could get ${name_user_ca}.p12 from ${Script_Dir}."
-            print_warn "You could stop ocserv by ' /etc/init.d/ocserv stop '!"
-            print_warn "Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
-            echo ""    
-            print_info "Enjoy it!"
-            echo ""
+            get_new_userca_show
         else
-            echo ""
-            echo -e "\033[41;37m Your server domain is \033[0m" "$fqdnname:$ocserv_port"
-            echo -e "\033[41;37m Your username is \033[0m" "$username"
-            echo -e "\033[41;37m Your password is \033[0m" "$password"
-            print_warn "You could use ' sudo ocpasswd -c /etc/ocserv/ocpasswd username ' to add users. "
-            print_warn "You could stop ocserv by ' /etc/init.d/ocserv stop '!"
-            print_warn "Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
-            echo ""    
-            print_info "Enjoy it!"
-            echo ""
+            echo -e "\033[41;37mYour Username :\033[0m\t\t\t$username"
+            echo -e "\033[41;37mYour Password :\033[0m\t\t\t$password"
+            echo
+            print_info "You could use ' sudo ocpasswd -c /etc/ocserv/ocpasswd username ' to add users. "
         fi
-    elif [ "$self_signed_ca" = "n" -a "$ca_login" = "n" ]; then    
-        print_warn "1,You should change Server Certificate and Server Key's name to server-cert.pem and server-key.pem !!!"
-        print_warn "2,You should put them to /etc/ocserv !!!"
-        print_warn "3,You should start ocserv by ' /etc/init.d/ocserv start '!"
-        print_warn "4,You could use ' sudo ocpasswd -c /etc/ocserv/ocpasswd username ' to add users."
-        print_warn "5,Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
-        echo -e "\033[41;37m Your username is \033[0m" "$username"
-        echo -e "\033[41;37m Your password is \033[0m" "$password"
+        print_info "You could stop ocserv by ' /etc/init.d/ocserv stop '!"
+        print_info "Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
+        echo
+        print_info "Enjoy it!"
+        echo
+    elif [ "$self_signed_ca" = "n" -a "$ca_login" = "n" ]; then
+        echo -e "\033[41;37mYour Username :\033[0m\t\t\t$username"
+        echo -e "\033[41;37mYour Password :\033[0m\t\t\t$password"
+        echo
+        print_info "1,You should change Server Certificate and Server Key's name to server-cert.pem and server-key.pem !"
+        print_info "2,You should put them to /etc/ocserv !"
+        print_info "3,You could start ocserv by ' /etc/init.d/ocserv start ' !"
+        print_info "4,You could use ' sudo ocpasswd -c /etc/ocserv/ocpasswd username ' to add users."
+        print_info "5,Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
+        echo
     elif [ "$self_signed_ca" = "n" -a "$ca_login" = "y" ]; then
-        print_warn "1,You should change your Server Certificate and Server Key's name to server-cert.pem and server-key.pem !!!"
-        print_warn "2,You should change your Certificate Authority Certificates and Certificate Authority Key's  name to ca-cert.pem and ca-key.pem!!!"
-        print_warn "3,You should put server-cert.pem server-key.pem and ca-cert.pem to /etc/ocserv !!!"
-        print_warn "4,You should put ca-cert.pem and ca-key.pem to /etc/ocserv/CAforOC !!!"
-        print_warn "5,You should use ' bash `basename $0` gc ' to get a client cert !!!"
-        print_warn "6,You could start ocserv by ' /etc/init.d/ocserv start '!"
-        print_warn "7,Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
+        print_info "1,You should change your Server Certificate and Server Key's name to server-cert.pem and server-key.pem !"
+        print_info "2,You should change your Certificate Authority Certificates and Certificate Authority Key's  name to ca-cert.pem and ca-key.pem !"
+        print_info "3,You should put server-cert.pem server-key.pem and ca-cert.pem to /etc/ocserv !"
+        print_info "4,You should put ca-cert.pem and ca-key.pem to /etc/ocserv/CAforOC !"
+        print_info "5,You could use ' bash `basename $0` gc ' to generate a new client-cert."
+        print_info "6,You could start ocserv by ' /etc/init.d/ocserv start '."
+        print_info "7,Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
+        echo
     else
         die "Ocserv start failure,check ${Script_Dir}/ocinstall.log"
     fi
@@ -787,16 +782,17 @@ function get_new_userca(){
     press_any_key
     ca_login_ocserv
     clear
+    echo
 }
 
 function get_new_userca_show(){
+    echo -e "\033[41;37mClient-cert Password :\033[0m\t\t$password"
+    echo -e "\033[41;37mClient-cert Expiration Days :\033[0m\t$oc_ex_days"
     echo
-    echo -e "\033[41;37m Your p12-cert's password is \033[0m" "$password"
-    echo -e "\033[41;37m Your p12-cert's number of expiration days is \033[0m" "$oc_ex_days"
-    print_warn " You could get user-${name_user_ca}.p12 from ${Script_Dir}."
-    print_warn " You should import the certificate to your device at first."
-    echo
-    print_info "Enjoy it"
+    print_info "You should import the client certificate to your device at first."
+    print_info "You could get ${name_user_ca}.p12 from ${Script_Dir}."
+    print_info "You could use ' bash `basename $0` gc ' to generate a new client-cert."
+    print_info "You could use ' bash `basename $0` rc ' to revoke an old client-cert."
 }
 
 function Outdate_Autoclean(){
@@ -856,8 +852,7 @@ function reinstall_ocserv(){
 
 function upgrade_ocserv(){    
     get_info_from_net
-    log_Start
-    Default_Ask "The latest is ${OC_version_latest} ,Input the version you want to upgrade?" "$OC_version_latest" "oc_version"
+    Default_Ask "The latest is ${OC_version_latest} ,Input the version you want to upgrade." "$OC_version_latest" "oc_version"
     Default_Ask "The maximum number of routing table rules?" "200" "max_router"
     press_any_key
     stop_ocserv
@@ -897,7 +892,9 @@ function enable_both_login_open_ca(){
     echo
     print_info "The plain login and the certificate login are Okay~"
     print_info "The following is your certificate login info~"
+    echo
     get_new_userca_show
+    echo
 }
 
 function enable_both_login_open_plain(){
@@ -915,10 +912,9 @@ function enable_both_login_open_plain(){
     print_info "The plain login and the certificate login are Okay~"
     print_info "The following is your plain login info~"
     echo
-    echo -e "\033[41;37m Your username is \033[0m" "$username"
-    echo -e "\033[41;37m Your password is \033[0m" "$password"
+    echo -e "\033[41;37mYour Username :\033[0m\t\t\t$username"
+    echo -e "\033[41;37mYour Password :\033[0m\t\t\t$password"
     echo
-    print_info "Enjoy it"
 }
 
 function help_ocservauto(){
