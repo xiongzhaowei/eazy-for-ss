@@ -235,7 +235,7 @@ function install_Oneclientcer(){
     print_info "Your install was successful!"
     else
     print_warn "Ocserv start failure,ocserv is offline!"
-    print_info "You could use ' bash `basename $0` ri' to forcibly upgrade your ocserv."
+    print_info "You could check ${Script_Dir}/ocinstall.log"
     fi
 }
 
@@ -612,7 +612,7 @@ _EOF_
 #two group then two unit,but IOS anyconnect does not surport. 
     [ "$open_two_group" = "y" ] && sed -i 's/^#//' user-${name_user_ca}/user.tmpl
 #user key
-    openssl genrsa -out user-${name_user_ca}/user-${name_user_ca}-key.pem 1024
+    openssl genrsa -out user-${name_user_ca}/user-${name_user_ca}-key.pem 2048
 #user cert
     certtool --generate-certificate --hash SHA256 --load-privkey user-${name_user_ca}/user-${name_user_ca}-key.pem --load-ca-certificate ca-cert.pem --load-ca-privkey ca-key.pem --template user-${name_user_ca}/user.tmpl --outfile user-${name_user_ca}/user-${name_user_ca}-cert.pem
 #p12
@@ -659,7 +659,7 @@ function set_ocserv_conf(){
     [ "$ocserv_boot_start" = "y" ] && {
         print_info "Enable ocserv service to start during bootup."
         [ "$ocserv_systemd" = "y" ] && {
-            systemctl enable ocserv.service > /dev/null 2>&1 || insserv ocserv > /dev/null 2>&1
+            systemctl enable ocserv > /dev/null 2>&1 || insserv ocserv > /dev/null 2>&1
         }
         [ "$ocserv_systemd" = "n" ] && insserv ocserv > /dev/null 2>&1
     }
@@ -858,7 +858,6 @@ function upgrade_ocserv(){
     rm -f /etc/ocserv/profile.xml
     rm -f /usr/sbin/ocserv
     tar_ocserv_install
-    pgrep systemd-journal > /dev/null 2>&1 && systemctl daemon-reload > /dev/null 2>&1
     start_ocserv
     ps cax | grep ocserv > /dev/null 2>&1
     if [ $? -eq 0 ]; then
