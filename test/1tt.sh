@@ -61,6 +61,17 @@ function print_warn(){
     echo -e '\033[0m'
 }
 
+#color line
+color_line(){
+    echo
+    while read line
+    do
+        echo -e "\e[1;33m$line"
+        echo
+    done
+    echo -en "\e[0m"
+}
+
 #get random word 获取$1位随机文本，剔除容易识别错误的字符例如0和O等等
 function get_random_word(){
     D_Num_Random="8"
@@ -817,7 +828,7 @@ function revoke_userca(){
     print_xxxx
     print_info "The following is the user list..."
     echo
-    ls -F|grep /|grep user|cut -d/ -f1
+    ls -F|grep /|grep user|cut -d/ -f1|color_line
     print_xxxx
     print_info "Which user do you want to revoke?"
     echo
