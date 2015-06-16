@@ -505,7 +505,7 @@ function tar_ocserv_install(){
     cd ocserv-$oc_version
 #set route limit 设定路由规则最大限制
     sed -i "s|\(#define MAX_CONFIG_ENTRIES \).*|\1$max_router|" src/vpn.h
-    ./configure --prefix=/usr --sysconfdir=/etc
+    ./configure --prefix=/usr --sysconfdir=/etc $Extra_Options
     make -j"$(nproc)"
     make install
 #check install 检测编译安装是否成功
@@ -814,7 +814,9 @@ function Outdate_Autoclean(){
         Client_EX_Date=`openssl x509 -noout -enddate -in ${My_One_Ca}/${My_One_Ca}-cert.pem | cut -d= -f2`
         Client_EX_Date=`date -d "${Client_EX_Date}" +%s`
         [ ${Client_EX_Date} -lt ${Today_Date} ] && {
-            mv ${My_One_Ca} -t revoke/
+            My_One_Ca_Now="${My_One_Ca}_$(date +%s)"
+            mv ${My_One_Ca} ${My_One_Ca_Now}
+            mv ${My_One_Ca_Now} -t revoke/
         }
     done
 }
@@ -844,8 +846,8 @@ function revoke_userca(){
 #revoke   
     cat ${revoke_ca}/${revoke_ca}-cert.pem >>revoked.pem
     certtool --generate-crl --load-ca-privkey ca-key.pem --load-ca-certificate ca-cert.pem --load-certificate revoked.pem --template crl.tmpl --outfile ../crl.pem
-#show
-    mv ${revoke_ca} revoke/
+    mv  ${revoke_ca} ${revoke_ca}_$(date +%s)
+    mv  ${revoke_ca}* revoke/
     print_info "${revoke_ca} was revoked."
     echo    
 }
@@ -968,11 +970,16 @@ oc_D_V=$(lsb_release -c -s)
 #[ "$oc_D_V" = "$oc_D_V" ] && return 0
 }
 
+#此处请不要改变
+Script_Dir="$(cd "$(dirname $0)"; pwd)"
+#此处请不要改变
+CONFIG_PATH_VARS="${Script_Dir}/vars_ocservauto"
+#此处请不要改变
+LOC_OC_CONF="/etc/ocserv/ocserv.conf"
+
 ##################################################################################################################
 #main                                                                                                            #
 ##################################################################################################################
-
-#install info
 clear
 echo "==============================================================================================="
 echo
@@ -984,14 +991,8 @@ print_info " Help Info:  bash `basename $0` help"
 echo
 echo "==============================================================================================="
 
-#脚本所在文件夹 此处请不要改变
-Script_Dir="$(cd "$(dirname $0)"; pwd)"
-#fastmode vars 存放配置参数文件的绝对路径，快速安装模式可用
-#可以自定义
-CONFIG_PATH_VARS="${Script_Dir}/vars_ocservauto"
-#ocserv.conf 绝对路径，此处请不要改变
-LOC_OC_CONF="/etc/ocserv/ocserv.conf"
-#ocserv配置文件所在的网络文件夹位置，请勿轻易改变
+#ocserv配置文件所在的网络文件夹位置
+#如果fork的话，请修改为自己的网络地址
 NET_OC_CONF_DOC="https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/ocservauto"
 #推荐的默认版本
 Default_oc_version="0.10.4"
@@ -999,7 +1000,12 @@ Default_oc_version="0.10.4"
 #All走全局，Route将会绕过大陆。
 #证书以及用户名登录都会采取。
 #证书分组模式下，ios下anyconnect客户端有bug，请不要使用。
+#默认为n关闭，开启为y。
 open_two_group="n"
+#编译安装ocserv的额外选项
+#例如Extra_Options="--with-local-talloc --enable-local-libopts --without-pcl-lib  --without-http-parser --without-protobuf"
+#详细请参考./configure --help 或ocserv官网
+Extra_Options=""
 
 #Initialization step
 action=$1
@@ -1044,6 +1050,7 @@ pc)
     enable_both_login
     ;;
 help | h)
+    clear
     help_ocservauto
     ;;
 *)
