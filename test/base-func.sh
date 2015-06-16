@@ -168,3 +168,25 @@ function check_install {
             fi
         done
 } 
+#ls|color_line;ls|color_turn
+color_turn(){
+    echo
+    while read line
+    do
+        echo -e "\e[1;33m$line"
+        echo
+        read line
+        echo -e "\e[1;32m$line"
+        echo
+    done
+    echo -en "\e[0m"
+}
+color_line(){
+    echo
+    while read line
+    do
+        echo -e "\e[1;33m$line"
+        echo
+    done
+    echo -en "\e[0m"
+}
