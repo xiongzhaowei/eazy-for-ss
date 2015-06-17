@@ -1,0 +1,35 @@
+{
+    "listen_address": "127.0.0.1",
+
+    "listen_port": 8080,
+
+    "force_https": true,
+
+    "backend_https": true,
+
+    "server_header": "AirGoo",
+
+    "force_cached_time": 1800,
+
+    "gzip_r4": false,
+
+    "logging": true,
+
+    "trust_proxy": true,
+
+    "prefer_lang": "zh-TW",
+
+    "max_transmit_size": 10485760,
+
+    "target_google": {
+        "host": "www",
+        "domain": "google.com"
+    },
+
+    "ext_domains": [
+        ".google.com",
+        ".gstatic.com",
+        ".googleapis.com",
+        ".googleusercontent.com"
+    ]
+}
