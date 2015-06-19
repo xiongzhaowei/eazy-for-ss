@@ -846,8 +846,9 @@ function revoke_userca(){
 #revoke   
     cat ${revoke_ca}/${revoke_ca}-cert.pem >>revoked.pem
     certtool --generate-crl --load-ca-privkey ca-key.pem --load-ca-certificate ca-cert.pem --load-certificate revoked.pem --template crl.tmpl --outfile ../crl.pem
-    mv  ${revoke_ca} ${revoke_ca}_$(date +%s)
-    mv  ${revoke_ca}* revoke/
+    revoke_ca_now="${revoke_ca}_$(date +%s)"
+    mv  ${revoke_ca} ${revoke_ca_now}
+    mv  ${revoke_ca_now} revoke/
     print_info "${revoke_ca} was revoked."
     echo    
 }
