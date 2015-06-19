@@ -385,7 +385,7 @@ iptables -A INPUT -p esp -m comment --comment "$gw_IPsec (IPSecIKEv1v2_5)" -j AC
 fi
 
 if !(iptables-save -t filter | grep -q "$gw_IPsec (IPSecIKEv1v2_6)"); then
-iptables -A FORWARD  -m state --state RELATED,ESTABLISHED -m comment --comment $gw_IPsec (IPSecIKEv1v2_6)" -j ACCEPT
+iptables -A FORWARD  -m state --state RELATED,ESTABLISHED -m comment --comment "$gw_IPsec (IPSecIKEv1v2_6)" -j ACCEPT
 fi
 
 # turn on MSS fix
