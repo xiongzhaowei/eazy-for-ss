@@ -190,3 +190,13 @@ color_line(){
     done
     echo -en "\e[0m"
 }
+function Ip_Check(){
+    local IP_TMP="$1"
+    if ( echo "$IP_TMP"|egrep -q \
+    '^((2[0-4][0-9]|25[0-5]|[01]?[0-9][0-9]?)\.){3}(2[0-4][0-9]|25[0-5]|[01]?[0-9][0-9]?)$' )
+    then
+        return 0
+    else
+        return 1
+    fi
+}
