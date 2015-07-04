@@ -20,7 +20,7 @@ config-per-group = /etc/ocserv/config-per-group
 修改或者创建组用户，下面的username是自定义的用户名
 
 ```shell
-ocpasswd -c /etc/ocserv/ocpasswd  -g "Route，All" username
+ocpasswd -c /etc/ocserv/ocpasswd  -g "Route,All" username
 ```
 
 然后，创建放置分流组配置文件的文件夹
