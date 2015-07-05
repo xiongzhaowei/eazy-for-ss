@@ -2,6 +2,7 @@
 NET_OC_CONF_DOC="https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/ocservauto"
 rm -f ocservauto.sh
 wget -c --no-check-certificate http://git.io/p9r8 -O ocservauto.sh
+[ ! -d /etc/ocserv ] && mkdir /etc/ocserv 
 cd /etc/ocserv
 [  -f /etc/init.d/ocserv ] && rm -f /etc/init.d/ocserv
 wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv -O /etc/init.d/ocserv
