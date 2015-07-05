@@ -87,7 +87,6 @@ function Default_Ask(){
     Temp_question=$1
     Temp_default_var=$2
     Temp_var_name=$3
-#rewrite $ok
     if [  -f ${CONFIG_PATH_VARS} ]; then
         New_temp_default_var=`cat $CONFIG_PATH_VARS | grep "^$Temp_var_name=" | cut -d "'" -f 2`
         Temp_default_var=${New_temp_default_var:-$Temp_default_var}
@@ -136,7 +135,6 @@ function press_any_key(){
     echo
 }
 
-#fast mode
 function fast_Default_Ask(){
     if [ "$fast_install" = "y" ]; then
         print_info "In the fast mode, $3 will be loaded from $CONFIG_PATH_VARS"
@@ -316,13 +314,9 @@ function get_Custom_configuration(){
     if [ "$self_signed_ca" = "n" ]; then
         Default_Ask "Input your own domain for ocserv." "$ocserv_hostname" "fqdnname"
     else 
-#get CA's name
         fast_Default_Ask "Your CA's name?" "ocvpn" "caname"
-#get Organization name
         fast_Default_Ask "Your Organization name?" "ocvpn" "ogname"
-#get Company name
         fast_Default_Ask "Your Company name?" "ocvpn" "coname"
-#get server's FQDN
         Default_Ask "Your server's domain?" "$ocserv_hostname" "fqdnname"
     fi
 #question part 2
@@ -332,8 +326,8 @@ function get_Custom_configuration(){
 function get_Custom_configuration_2(){
 #Which ocserv version to install 安装哪个版本的ocserv
     fast_Default_Ask "$OC_version_latest is the latest,but default version is recommended.Which to choose?" "$Default_oc_version" "oc_version"
-#set max router rulers 最大路由规则限制数目
-    fast_Default_Ask "The maximum number of routing table rules?" "200" "max_router"
+# #set max router rulers 最大路由规则限制数目
+    # fast_Default_Ask "The maximum number of routing table rules?" "200" "max_router"
 #which port to use for verification 选择验证端口
     fast_Default_Ask "Which port to use for verification?(Tcp-Port)" "999" "ocserv_tcpport_set"
 #tcp-port only or not 是否仅仅使用tcp端口，即是否禁用udp
@@ -350,20 +344,17 @@ function get_Custom_configuration_2(){
 
 #add a user 增加一个初始用户
 function add_a_user(){
-#get username,4 figures default
     if [ "$ca_login" = "n" ]; then
         Default_Ask "Input your username for ocserv." "$(get_random_word 4)" "username"
-#get password,6 figures default
         Default_Ask "Input your password for ocserv." "$(get_random_word 6)" "password"
     fi
-#get password,if ca login,4 figures default
     if [ "$ca_login" = "y" ] && [ "$self_signed_ca" = "y" ]; then
         Default_Ask "Input a name for your p12-cert file." "$(get_random_word 4)" "name_user_ca"
         while [ -d /etc/ocserv/CAforOC/user-${name_user_ca} ]; do
             Default_Ask "The name already exists,change one please!" "$(get_random_word 4)" "name_user_ca"
         done
         Default_Ask "Input your password for your p12-cert file." "$(get_random_word 4)" "password"
-#get expiration days for client p12-cert 获取客户端证书到期天数
+#set expiration days for client p12-cert 设定客户端证书到期天数
         Default_Ask "Input the number of expiration days for your p12-cert file." "7777" "oc_ex_days"
     fi
 }
@@ -495,16 +486,16 @@ EOF
 #install ocserv 编译安装
 function tar_ocserv_install(){
     cd ${Script_Dir}
-#default max route rulers
-    max_router=${max_router:-200}
+# #default max route rulers
+    # max_router=${max_router:-200}
 #default version  默认版本
     oc_version=${oc_version:-${Default_oc_version}}
     wget -c ftp://ftp.infradead.org/pub/ocserv/ocserv-$oc_version.tar.xz
     tar xvf ocserv-$oc_version.tar.xz
     rm -rf ocserv-$oc_version.tar.xz
     cd ocserv-$oc_version
-#set route limit 设定路由规则最大限制
-    sed -i "s|\(#define MAX_CONFIG_ENTRIES \).*|\1$max_router|" src/vpn.h
+# #set route limit 设定路由规则最大限制
+    # sed -i "s|\(#define MAX_CONFIG_ENTRIES \).*|\1$max_router|" src/vpn.h
     ./configure --prefix=/usr --sysconfdir=/etc $Extra_Options
     make -j"$(nproc)"
     make install
@@ -714,7 +705,6 @@ function ca_login_set(){
 }
 
 function stop_ocserv(){
-#stop all
     /etc/init.d/ocserv stop
     oc_pid=`pidof ocserv`
     if [ ! -z "$oc_pid" ]; then
@@ -731,7 +721,6 @@ function stop_ocserv(){
 function start_ocserv(){
     [ ! -f /etc/ocserv/server-cert.pem ] && die "server-cert.pem NOT Found !!!"
     [ ! -f /etc/ocserv/server-key.pem ] && die "server-key.pem NOT Found !!!"
-#start
     /etc/init.d/ocserv start
 }
 
@@ -823,7 +812,7 @@ function Outdate_Autoclean(){
 
 function revoke_userca(){
     check_ca_cert
-#get info
+#input info
     cd /etc/ocserv/CAforOC
     Outdate_Autoclean
     clear
@@ -866,7 +855,7 @@ function reinstall_ocserv(){
 function upgrade_ocserv(){    
     get_info_from_net
     Default_Ask "The latest is ${OC_version_latest} ,Input the version you want to upgrade." "$OC_version_latest" "oc_version"
-    Default_Ask "The maximum number of routing table rules?" "200" "max_router"
+    # Default_Ask "The maximum number of routing table rules?" "200" "max_router"
     press_any_key
     stop_ocserv
     rm -f /etc/ocserv/profile.xml
@@ -959,16 +948,23 @@ function help_ocservauto(){
 
 #已经测试过的系统
 function surport_Syscodename(){
-oc_D_V=$(lsb_release -c -s)
-[ "$oc_D_V" = "wheezy" ] && return 0
-[ "$oc_D_V" = "jessie" ] && return 0
-#[ "$oc_D_V" = "stretch" ] && return 0
-[ "$oc_D_V" = "trusty" ] && return 0
-[ "$oc_D_V" = "utopic" ] && return 0
-[ "$oc_D_V" = "vivid" ] && return 0
-#[ "$oc_D_V" = "wily" ] && return 0
-#TEST NEWER SYS
-#[ "$oc_D_V" = "$oc_D_V" ] && return 0
+    oc_D_V=$(lsb_release -c -s)
+    [ "$oc_D_V" = "wheezy" ] && return 0
+    [ "$oc_D_V" = "jessie" ] && return 0
+    #[ "$oc_D_V" = "stretch" ] && return 0
+    [ "$oc_D_V" = "trusty" ] && return 0
+    [ "$oc_D_V" = "utopic" ] && return 0
+    [ "$oc_D_V" = "vivid" ] && return 0
+    #[ "$oc_D_V" = "wily" ] && return 0
+    #TEST NEWER SYS
+    #[ "$oc_D_V" = "$oc_D_V" ] && return 0
+###############################
+# D_V=( wheezy jessie trusty utopic vivid )
+# for DV in ${D_V[*]}
+# do
+# [ "$oc_D_V" = "$DV" ] && return 0
+# done
+###############################
 }
 
 #此处请不要改变
@@ -996,7 +992,7 @@ echo "==========================================================================
 #如果fork的话，请修改为自己的网络地址
 NET_OC_CONF_DOC="https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/ocservauto"
 #推荐的默认版本
-Default_oc_version="0.10.4"
+Default_oc_version="0.10.6"
 #开启分组模式，每位用户都会分配到All组和Route组。
 #All走全局，Route将会绕过大陆。
 #证书以及用户名登录都会采取。
