@@ -229,6 +229,7 @@ function install_Oneclientcer(){
     press_any_key
     pre_install && tar_ocserv_install
     make_ocserv_ca
+    cd ${Script_Dir}
     rm -rf /etc/ocserv/ca-cert.pem && rm -rf /etc/ocserv/CAforOC
     mv ${Script_Dir}/ca-cert.pem /etc/ocserv
     set_ocserv_conf
@@ -956,9 +957,10 @@ function surport_Syscodename(){
     [ "$oc_D_V" = "utopic" ] && return 0
     [ "$oc_D_V" = "vivid" ] && return 0
     #[ "$oc_D_V" = "wily" ] && return 0
-    #TEST NEWER SYS
+    #TEST NEWER SYS 测试新系统，取消下面一行的注释。
     #[ "$oc_D_V" = "$oc_D_V" ] && return 0
 ###############################
+# # 另一种实现方式
 # D_V=( wheezy jessie trusty utopic vivid )
 # for DV in ${D_V[*]}
 # do
