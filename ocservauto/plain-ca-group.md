@@ -22,8 +22,11 @@ config-per-group = /etc/ocserv/config-per-group
 ```shell
 ocpasswd -c /etc/ocserv/ocpasswd  -g "Route,All" username
 ```
+如果您使用是该脚本进行安装，进行到此步骤即可重启服务器了。下面的文件夹和文件都已被脚本自动创建了。
 
-然后，创建放置分流组配置文件的文件夹
+如果没有相关文件和文件夹，请根据说明继续进行操作。
+
+创建放置分流组配置文件的文件夹
 
 ```shell
 mkdir /etc/ocserv/config-per-group
