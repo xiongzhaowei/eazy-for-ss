@@ -1,4 +1,4 @@
-##Ocservauto For Debian 0.7
+##Ocservauto For Debian 0.8
 
 This script may help you setup your own openconnect_server in debian(>=7),ubuntu(>=14.04).
 
