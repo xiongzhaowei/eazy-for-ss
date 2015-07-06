@@ -61,6 +61,17 @@ function print_warn(){
     echo -e '\033[0m'
 }
 
+#color line
+color_line(){
+    echo
+    while read line
+    do
+        echo -e "\e[1;33m$line"
+        echo
+    done
+    echo -en "\e[0m"
+}
+
 #get random word 获取$1位随机文本，剔除容易识别错误的字符例如0和O等等
 function get_random_word(){
     D_Num_Random="8"
@@ -76,7 +87,6 @@ function Default_Ask(){
     Temp_question=$1
     Temp_default_var=$2
     Temp_var_name=$3
-#rewrite $ok
     if [  -f ${CONFIG_PATH_VARS} ]; then
         New_temp_default_var=`cat $CONFIG_PATH_VARS | grep "^$Temp_var_name=" | cut -d "'" -f 2`
         Temp_default_var=${New_temp_default_var:-$Temp_default_var}
@@ -125,7 +135,6 @@ function press_any_key(){
     echo
 }
 
-#fast mode
 function fast_Default_Ask(){
     if [ "$fast_install" = "y" ]; then
         print_info "In the fast mode, $3 will be loaded from $CONFIG_PATH_VARS"
@@ -196,7 +205,7 @@ function install_OpenConnect_VPN_server(){
 #make a client cert 若证书登录则制作客户端证书
     [ "$ca_login" = "y" ] && {
         [ "$self_signed_ca" = "y" ] && {
-            ca_login_ocserv
+            ca_login_clientcert
         }
     }
 #configuration 设定软件相关选项
@@ -220,6 +229,7 @@ function install_Oneclientcer(){
     press_any_key
     pre_install && tar_ocserv_install
     make_ocserv_ca
+    cd ${Script_Dir}
     rm -rf /etc/ocserv/ca-cert.pem && rm -rf /etc/ocserv/CAforOC
     mv ${Script_Dir}/ca-cert.pem /etc/ocserv
     set_ocserv_conf
@@ -235,7 +245,7 @@ function install_Oneclientcer(){
     print_info "Your install was successful!"
     else
     print_warn "Ocserv start failure,ocserv is offline!"
-    print_info "You could use ' bash `basename $0` ri' to forcibly upgrade your ocserv."
+    print_info "You could check ${Script_Dir}/ocinstall.log"
     fi
 }
 
@@ -262,7 +272,6 @@ function check_Required(){
     print_info "Get base-tools ok"
 #only Debian 7+
     surport_Syscodename || die "Sorry, your system is too old or has not been tested."
-    log_Start
     print_info "Distro ok"
 #check systemd
     ocserv_systemd="n"
@@ -281,13 +290,13 @@ function check_Required(){
 }
 
 function log_Start(){
-    echo "SYS INFO" >${Script_Dir}/ocerror.log
-    echo "" >>${Script_Dir}/ocerror.log
-    sed '/^$/d' /etc/issue >>${Script_Dir}/ocerror.log
-    uname -r >>${Script_Dir}/ocerror.log
-    echo "" >>${Script_Dir}/ocerror.log
-    echo "ERROR INFO" >>${Script_Dir}/ocerror.log
-    echo "" >>${Script_Dir}/ocerror.log
+    echo "SYS INFO" >${Script_Dir}/ocinstall.log
+    echo "" >>${Script_Dir}/ocinstall.log
+    sed '/^$/d' /etc/issue >>${Script_Dir}/ocinstall.log
+    uname -r >>${Script_Dir}/ocinstall.log
+    echo "" >>${Script_Dir}/ocinstall.log
+    echo "INSTALL INFO" >>${Script_Dir}/ocinstall.log
+    echo "" >>${Script_Dir}/ocinstall.log
 }
 
 function get_info_from_net(){
@@ -306,13 +315,9 @@ function get_Custom_configuration(){
     if [ "$self_signed_ca" = "n" ]; then
         Default_Ask "Input your own domain for ocserv." "$ocserv_hostname" "fqdnname"
     else 
-#get CA's name
         fast_Default_Ask "Your CA's name?" "ocvpn" "caname"
-#get Organization name
         fast_Default_Ask "Your Organization name?" "ocvpn" "ogname"
-#get Company name
         fast_Default_Ask "Your Company name?" "ocvpn" "coname"
-#get server's FQDN
         Default_Ask "Your server's domain?" "$ocserv_hostname" "fqdnname"
     fi
 #question part 2
@@ -322,8 +327,8 @@ function get_Custom_configuration(){
 function get_Custom_configuration_2(){
 #Which ocserv version to install 安装哪个版本的ocserv
     fast_Default_Ask "$OC_version_latest is the latest,but default version is recommended.Which to choose?" "$Default_oc_version" "oc_version"
-#set max router rulers 最大路由规则限制数目
-    fast_Default_Ask "The maximum number of routing table rules?" "200" "max_router"
+# #set max router rulers 最大路由规则限制数目
+    # fast_Default_Ask "The maximum number of routing table rules?" "200" "max_router"
 #which port to use for verification 选择验证端口
     fast_Default_Ask "Which port to use for verification?(Tcp-Port)" "999" "ocserv_tcpport_set"
 #tcp-port only or not 是否仅仅使用tcp端口，即是否禁用udp
@@ -340,20 +345,17 @@ function get_Custom_configuration_2(){
 
 #add a user 增加一个初始用户
 function add_a_user(){
-#get username,4 figures default
     if [ "$ca_login" = "n" ]; then
         Default_Ask "Input your username for ocserv." "$(get_random_word 4)" "username"
-#get password,6 figures default
         Default_Ask "Input your password for ocserv." "$(get_random_word 6)" "password"
     fi
-#get password,if ca login,4 figures default
     if [ "$ca_login" = "y" ] && [ "$self_signed_ca" = "y" ]; then
         Default_Ask "Input a name for your p12-cert file." "$(get_random_word 4)" "name_user_ca"
         while [ -d /etc/ocserv/CAforOC/user-${name_user_ca} ]; do
             Default_Ask "The name already exists,change one please!" "$(get_random_word 4)" "name_user_ca"
         done
         Default_Ask "Input your password for your p12-cert file." "$(get_random_word 4)" "password"
-#get expiration days for client p12-cert 获取客户端证书到期天数
+#set expiration days for client p12-cert 设定客户端证书到期天数
         Default_Ask "Input the number of expiration days for your p12-cert file." "7777" "oc_ex_days"
     fi
 }
@@ -369,7 +371,6 @@ function Dependencies_install_onebyone(){
             apt-get clean
         else
             print_warn "[ ${OC_DP} ] not be installed!"
-            echo "[ ${OC_DP} ] not be installed!" >>${Script_Dir}/ocerror.log
         fi
     done
 }
@@ -486,26 +487,25 @@ EOF
 #install ocserv 编译安装
 function tar_ocserv_install(){
     cd ${Script_Dir}
-#default max route rulers
-    max_router=${max_router:-200}
+# #default max route rulers
+    # max_router=${max_router:-200}
 #default version  默认版本
     oc_version=${oc_version:-${Default_oc_version}}
     wget -c ftp://ftp.infradead.org/pub/ocserv/ocserv-$oc_version.tar.xz
     tar xvf ocserv-$oc_version.tar.xz
     rm -rf ocserv-$oc_version.tar.xz
     cd ocserv-$oc_version
-#have to use "" then $ work ,set router limit 设定路由规则最大限制
-    sed -i "s|\(#define MAX_CONFIG_ENTRIES \).*|\1$max_router|" src/vpn.h
-    ./configure --prefix=/usr --sysconfdir=/etc 2>>${Script_Dir}/ocerror.log
-    make -j"$(nproc)" 2>>${Script_Dir}/ocerror.log
+# #set route limit 设定路由规则最大限制
+    # sed -i "s|\(#define MAX_CONFIG_ENTRIES \).*|\1$max_router|" src/vpn.h
+    ./configure --prefix=/usr --sysconfdir=/etc $Extra_Options
+    make -j"$(nproc)"
     make install
 #check install 检测编译安装是否成功
     [ ! -f /usr/sbin/ocserv ] && {
         make clean
-        die "Ocserv install failure,check ${Script_Dir}/ocerror.log"
+        die "Ocserv install failure,check ${Script_Dir}/ocinstall.log"
     }
 #mv files
-#    rm -f ${Script_Dir}/ocerror.log
     mkdir -p /etc/ocserv/CAforOC/revoke > /dev/null 2>&1
     mkdir /etc/ocserv/{config-per-group,defaults} > /dev/null 2>&1
     cp doc/profile.xml /etc/ocserv
@@ -514,217 +514,31 @@ function tar_ocserv_install(){
     rm -rf ocserv-$oc_version
 #get or set config file
     cd /etc/ocserv
-    cat > /etc/init.d/ocserv <<'EOF'
-#!/bin/sh
-### BEGIN INIT INFO
-# Provides:          ocserv
-# Required-Start:    $network $remote_fs $syslog
-# Required-Stop:     $network $remote_fs $syslog
-# Default-Start:     2 3 4 5
-# Default-Stop:      0 1 6
-# Short-Description: ocserv
-# Description:       OpenConnect VPN server compatible with
-#                    Cisco AnyConnect VPN.
-### END INIT INFO
-
-# Author: liyangyijie <liyangyijie@gmail.com>
-
-# PATH should only include /usr/ if it runs after the mountnfs.sh script
-PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC=ocserv
-NAME=ocserv
-DAEMON=/usr/sbin/ocserv
-DAEMON_ARGS=""
-CONFFILE="/etc/ocserv/ocserv.conf"
-PIDFILE=/var/run/$NAME/$NAME.pid
-SCRIPTNAME=/etc/init.d/$NAME
-SERVER_UP="/etc/ocserv/ocserv-up.sh"
-SERVER_DOWN="/etc/ocserv/ocserv-down.sh"
-
-# Exit if the package is not installed
-[ -x $DAEMON ] || exit 0
-
-: ${USER:="root"}
-: ${GROUP:="root"}
-
-# Load the VERBOSE setting and other rcS variables
-. /lib/init/vars.sh
-
-# Define LSB log_* functions.
-# Depend on lsb-base (>= 3.0-6) to ensure that this file is present.
-. /lib/lsb/init-functions
-
-#
-# Function that starts the daemon/service
-#
-do_start()
-{
-    # Add server up script
-    [ -x ${SERVER_UP} ] && . ${SERVER_UP}
-
-    # Take care of pidfile permissions
-    mkdir /var/run/$NAME 2>/dev/null || true
-    chown "$USER:$GROUP" /var/run/$NAME
-
-    # Return
-    #   0 if daemon has been started
-    #   1 if daemon was already running
-    #   2 if daemon could not be started
-    start-stop-daemon --start --quiet --pidfile $PIDFILE --chuid $USER:$GROUP --exec $DAEMON --test > /dev/null \
-        || return 1
-    start-stop-daemon --start --quiet --pidfile $PIDFILE --chuid $USER:$GROUP --exec $DAEMON -- \
-        -c "$CONFFILE" $DAEMON_ARGS \
-        || return 2
-}
-
-#
-# Function that stops the daemon/service
-#
-do_stop()
-{
-    # Add server down script
-    [ -x ${SERVER_DOWN} ] && . ${SERVER_DOWN}
-    
-    # Return
-    #   0 if daemon has been stopped
-    #   1 if daemon was already stopped
-    #   2 if daemon could not be stopped
-    #   other if a failure occurred
-    start-stop-daemon --stop --quiet --retry=KILL/5 --pidfile $PIDFILE --exec $DAEMON
-    RETVAL="$?"
-    [ "$RETVAL" = 2 ] && return 2
-    # Wait for children to finish too if this is a daemon that forks
-    # and if the daemon is only ever run from this initscript.
-    # If the above conditions are not satisfied then add some other code
-    # that waits for the process to drop all resources that could be
-    # needed by services started subsequently.  A last resort is to
-    # sleep for some time.
-    start-stop-daemon --stop --quiet --oknodo --retry=KILL/5 --exec $DAEMON
-    [ "$?" = 2 ] && return 2
-    # Many daemons don't delete their pidfiles when they exit.
-    rm -f $PIDFILE
-    return "$RETVAL"
-}
-
-
-case "$1" in
-    start)
-        [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC " "$NAME"
-        do_start
-        case "$?" in
-            0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-        2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-    esac
-    ;;
-stop)
-    [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
-    do_stop
-    case "$?" in
-        0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-    2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-esac
-;;
-  status)
-      status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
-      ;;
-  restart|force-reload)
-      log_daemon_msg "Restarting $DESC" "$NAME"
-      do_stop
-      case "$?" in
-          0|1)
-              do_start
-              case "$?" in
-                  0) log_end_msg 0 ;;
-              1) log_end_msg 1 ;; # Old process is still running
-          *) log_end_msg 1 ;; # Failed to start
-      esac
-      ;;
-  *)
-      # Failed to stop
-      log_end_msg 1
-      ;;
-    esac
-    ;;
-*)
-    echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
-    exit 3
-    ;;
-esac
-
-:
-EOF
-    chmod 755 /etc/init.d/ocserv
-    [ "$ocserv_systemd" = "y" ] && systemctl daemon-reload > /dev/null 2>&1
-    cat > ocserv-up.sh <<'EOF'
-#!/bin/bash
-
-#vars
-OCSERV_CONFIG="/etc/ocserv/ocserv.conf"
-
-# turn on IP forwarding
-#sysctl -w net.ipv6.conf.all.forwarding=1 > /dev/null 2>&1
-sysctl -w net.ipv4.ip_forward=1 > /dev/null 2>&1
-
-#get gateway and profiles
-gw_intf_oc=`ip route show|sed -n 's/^default.* dev \([^ ]*\).*/\1/p'`
-ocserv_tcpport=`sed -n 's/^tcp-.*=[ \t]*//p' $OCSERV_CONFIG`
-ocserv_udpport=`sed -n 's/^udp-.*=[ \t]*//p' $OCSERV_CONFIG`
-ocserv_ip4_work_mask=`sed -n 's/^ipv4-.*=[ \t]*//p' $OCSERV_CONFIG|sed 'N;s|\n|/|g'`
-
-# turn on NAT over default gateway and VPN
-if !(iptables-save -t nat | grep -q "$gw_intf_oc (ocserv)"); then
-iptables -t nat -A POSTROUTING -s $ocserv_ip4_work_mask -o $gw_intf_oc -m comment --comment "$gw_intf_oc (ocserv)" -j MASQUERADE
-fi
-
-if !(iptables-save -t filter | grep -q "$gw_intf_oc (ocserv2)"); then
-iptables -A FORWARD -s $ocserv_ip4_work_mask -m comment --comment "$gw_intf_oc (ocserv2)" -j ACCEPT
-fi
-
-if !(iptables-save -t filter | grep -q "$gw_intf_oc (ocserv3)"); then
-iptables -A INPUT -p tcp --dport $ocserv_tcpport -m comment --comment "$gw_intf_oc (ocserv3)" -j ACCEPT
-fi
-
-if [ "$ocserv_udpport" != "" ]; then
-    if !(iptables-save -t filter | grep -q "$gw_intf_oc (ocserv4)"); then
-        iptables -A INPUT -p udp --dport $ocserv_udpport -m comment --comment "$gw_intf_oc (ocserv4)" -j ACCEPT
-    fi
-fi
-
-if !(iptables-save -t filter | grep -q "$gw_intf_oc (ocserv5)"); then
-iptables -A FORWARD  -m state --state RELATED,ESTABLISHED -m comment --comment "$gw_intf_oc (ocserv5)" -j ACCEPT
-fi
-
-# turn on MSS fix
-# MSS = MTU - TCP header - IP header
-if !(iptables-save -t mangle | grep -q "$gw_intf_oc (ocserv6)"); then
-iptables -t mangle -A FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -m comment --comment "$gw_intf_oc (ocserv6)" -j TCPMSS --clamp-mss-to-pmtu
-fi
-EOF
-    chmod +x ocserv-up.sh
-    cat > ocserv-down.sh <<'EOF'
-#!/bin/bash
-
-# uncomment if you want to turn off IP forwarding
-# sysctl -w net.ipv4.ip_forward=0
-
-#del iptables
-
-iptables-save | grep 'ocserv' | sed 's/^-A P/iptables -t nat -D P/' | sed 's/^-A FORWARD -p/iptables -t mangle -D FORWARD -p/' | sed 's/^-A/iptables -D/' | bash
-EOF
-    chmod +x ocserv-down.sh
-    while [ ! -f ocserv.conf ]; do
-        wget -c $NET_OC_CONF_DOC/ocserv.conf --no-check-certificate
-    done
-    while [ ! -f config-per-group/Route ]; do
-        wget -c $NET_OC_CONF_DOC/routerulers -O config-per-group/Route --no-check-certificate
-    done
-    if [ ! -f dh.pem ]; then
+    [ ! -f /etc/init.d/ocserv ] && {
+        wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv -O /etc/init.d/ocserv
+        chmod 755 /etc/init.d/ocserv
+        [ "$ocserv_systemd" = "y" ] && systemctl daemon-reload > /dev/null 2>&1
+    }
+    [ ! -f ocserv-up.sh ] && {
+        wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv-up.sh
+        chmod +x ocserv-up.sh
+    }
+    [ ! -f ocserv-down.sh ] && {
+        wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv-down.sh
+        chmod +x ocserv-down.sh
+    }
+    [ ! -f ocserv.conf ] && {
+        wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv.conf
+    }
+    [ ! -f config-per-group/Route ] && {
+        wget -c --no-check-certificate $NET_OC_CONF_DOC/Route -O config-per-group/Route
+    }
+    [ ! -f dh.pem ] && {
         print_info "Perhaps generate DH parameters will take some time , please wait..."
         certtool --generate-dh-params --sec-param high --outfile dh.pem
-    fi
+    }
     clear
     print_info "Ocserv install ok"
-    
 }
 
 function make_ocserv_ca(){
@@ -768,12 +582,14 @@ _EOF_
     certtool --generate-certificate --hash SHA256 --load-privkey server-key.pem --load-ca-certificate ca-cert.pem --load-ca-privkey ca-key.pem --template server.tmpl --outfile server-cert.pem
     [ ! -f server-cert.pem ] && die "server-cert.pem NOT Found , make failure!"
     [ ! -f server-key.pem ] && die "server-key.pem NOT Found , make failure!"
+#自签证书完善证书链
+    cat ca-cert.pem >> server-cert.pem
     cp server-cert.pem /etc/ocserv && cp server-key.pem /etc/ocserv
     cp ca-cert.pem /etc/ocserv
     print_info "Self-signed CA for ocserv ok"
 }
 
-function ca_login_ocserv(){
+function ca_login_clientcert(){
 #generate a client cert
     print_info "Generating a client cert..."
     cd /etc/ocserv/CAforOC
@@ -799,7 +615,7 @@ _EOF_
 #two group then two unit,but IOS anyconnect does not surport. 
     [ "$open_two_group" = "y" ] && sed -i 's/^#//' user-${name_user_ca}/user.tmpl
 #user key
-    openssl genrsa -out user-${name_user_ca}/user-${name_user_ca}-key.pem 1024
+    openssl genrsa -out user-${name_user_ca}/user-${name_user_ca}-key.pem 2048
 #user cert
     certtool --generate-certificate --hash SHA256 --load-privkey user-${name_user_ca}/user-${name_user_ca}-key.pem --load-ca-certificate ca-cert.pem --load-ca-privkey ca-key.pem --template user-${name_user_ca}/user.tmpl --outfile user-${name_user_ca}/user-${name_user_ca}-cert.pem
 #p12
@@ -846,7 +662,7 @@ function set_ocserv_conf(){
     [ "$ocserv_boot_start" = "y" ] && {
         print_info "Enable ocserv service to start during bootup."
         [ "$ocserv_systemd" = "y" ] && {
-            systemctl enable ocserv.service > /dev/null 2>&1 || insserv ocserv > /dev/null 2>&1
+            systemctl enable ocserv > /dev/null 2>&1 || insserv ocserv > /dev/null 2>&1
         }
         [ "$ocserv_systemd" = "n" ] && insserv ocserv > /dev/null 2>&1
     }
@@ -890,7 +706,6 @@ function ca_login_set(){
 }
 
 function stop_ocserv(){
-#stop all
     /etc/init.d/ocserv stop
     oc_pid=`pidof ocserv`
     if [ ! -z "$oc_pid" ]; then
@@ -907,56 +722,50 @@ function stop_ocserv(){
 function start_ocserv(){
     [ ! -f /etc/ocserv/server-cert.pem ] && die "server-cert.pem NOT Found !!!"
     [ ! -f /etc/ocserv/server-key.pem ] && die "server-key.pem NOT Found !!!"
-#start
     /etc/init.d/ocserv start
 }
 
 function show_ocserv(){
     ocserv_port=`sed -n 's/^[ \t]*tcp-port[ \t]*=[ \t]*//p' ${LOC_OC_CONF}`
     clear
+    echo
     ps cax | grep ocserv > /dev/null 2>&1
     if [ $? -eq 0 ]; then
+        echo -e "\033[41;37mYour Server Domain :\033[0m\t\t$fqdnname:$ocserv_port"
         if [ "$ca_login" = "y" ]; then
-            echo ""
-            echo -e "\033[41;37m Your server domain is \033[0m" "$fqdnname:$ocserv_port"
-            echo -e "\033[41;37m Your p12-cert's password is \033[0m" "$password"
-            echo -e "\033[41;37m Your p12-cert's number of expiration days is \033[0m" "$oc_ex_days"
-            print_warn "You could get ${name_user_ca}.p12 from ${Script_Dir}."
-            print_warn "You could stop ocserv by ' /etc/init.d/ocserv stop '!"
-            print_warn "Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
-            echo ""    
-            print_info "Enjoy it!"
-            echo ""
+            get_new_userca_show
         else
-            echo ""
-            echo -e "\033[41;37m Your server domain is \033[0m" "$fqdnname:$ocserv_port"
-            echo -e "\033[41;37m Your username is \033[0m" "$username"
-            echo -e "\033[41;37m Your password is \033[0m" "$password"
-            print_warn "You could use ' sudo ocpasswd -c /etc/ocserv/ocpasswd username ' to add users. "
-            print_warn "You could stop ocserv by ' /etc/init.d/ocserv stop '!"
-            print_warn "Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
-            echo ""    
-            print_info "Enjoy it!"
-            echo ""
+            echo -e "\033[41;37mYour Username :\033[0m\t\t\t$username"
+            echo -e "\033[41;37mYour Password :\033[0m\t\t\t$password"
+            echo
+            print_info "You could use ' sudo ocpasswd -c /etc/ocserv/ocpasswd username ' to add users. "
         fi
-    elif [ "$self_signed_ca" = "n" -a "$ca_login" = "n" ]; then    
-        print_warn "1,You should change Server Certificate and Server Key's name to server-cert.pem and server-key.pem !!!"
-        print_warn "2,You should put them to /etc/ocserv !!!"
-        print_warn "3,You should start ocserv by ' /etc/init.d/ocserv start '!"
-        print_warn "4,You could use ' sudo ocpasswd -c /etc/ocserv/ocpasswd username ' to add users."
-        print_warn "5,Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
-        echo -e "\033[41;37m Your username is \033[0m" "$username"
-        echo -e "\033[41;37m Your password is \033[0m" "$password"
+        print_info "You could stop ocserv by ' /etc/init.d/ocserv stop '!"
+        print_info "Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
+        echo
+        print_info "Enjoy it!"
+        echo
+    elif [ "$self_signed_ca" = "n" -a "$ca_login" = "n" ]; then
+        echo -e "\033[41;37mYour Username :\033[0m\t\t\t$username"
+        echo -e "\033[41;37mYour Password :\033[0m\t\t\t$password"
+        echo
+        print_info "1,You should change Server Certificate and Server Key's name to server-cert.pem and server-key.pem !"
+        print_info "2,You should put them to /etc/ocserv !"
+        print_info "3,You could start ocserv by ' /etc/init.d/ocserv start ' !"
+        print_info "4,You could use ' sudo ocpasswd -c /etc/ocserv/ocpasswd username ' to add users."
+        print_info "5,Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
+        echo
     elif [ "$self_signed_ca" = "n" -a "$ca_login" = "y" ]; then
-        print_warn "1,You should change your Server Certificate and Server Key's name to server-cert.pem and server-key.pem !!!"
-        print_warn "2,You should change your Certificate Authority Certificates and Certificate Authority Key's  name to ca-cert.pem and ca-key.pem!!!"
-        print_warn "3,You should put server-cert.pem server-key.pem and ca-cert.pem to /etc/ocserv !!!"
-        print_warn "4,You should put ca-cert.pem and ca-key.pem to /etc/ocserv/CAforOC !!!"
-        print_warn "5,You should use ' bash `basename $0` gc ' to get a client cert !!!"
-        print_warn "6,You could start ocserv by ' /etc/init.d/ocserv start '!"
-        print_warn "7,Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
+        print_info "1,You should change your Server Certificate and Server Key's name to server-cert.pem and server-key.pem !"
+        print_info "2,You should change your Certificate Authority Certificates and Certificate Authority Key's  name to ca-cert.pem and ca-key.pem !"
+        print_info "3,You should put server-cert.pem server-key.pem and ca-cert.pem to /etc/ocserv !"
+        print_info "4,You should put ca-cert.pem and ca-key.pem to /etc/ocserv/CAforOC !"
+        print_info "5,You could use ' bash `basename $0` gc ' to generate a new client-cert."
+        print_info "6,You could start ocserv by ' /etc/init.d/ocserv start '."
+        print_info "7,Boot from the start or not, use ' sudo insserv ocserv ' or ' sudo insserv -r ocserv '."
+        echo
     else
-        print_warn "Ocserv start failure,ocserv is offline!"
+        die "Ocserv start failure,check ${Script_Dir}/ocinstall.log"
     fi
 }
 
@@ -968,22 +777,22 @@ function check_ca_cert(){
 
 function get_new_userca(){
     check_ca_cert
-    ca_login="y"
-    self_signed_ca="y"
+    ca_login="y" && self_signed_ca="y"
     add_a_user
     press_any_key
-    ca_login_ocserv
+    ca_login_clientcert
     clear
+    echo
 }
 
 function get_new_userca_show(){
+    echo -e "\033[41;37mClient-cert Password :\033[0m\t\t$password"
+    echo -e "\033[41;37mClient-cert Expiration Days :\033[0m\t$oc_ex_days"
     echo
-    echo -e "\033[41;37m Your p12-cert's password is \033[0m" "$password"
-    echo -e "\033[41;37m Your p12-cert's number of expiration days is \033[0m" "$oc_ex_days"
-    print_warn " You could get user-${name_user_ca}.p12 from ${Script_Dir}."
-    print_warn " You should import the certificate to your device at first."
-    echo
-    print_info "Enjoy it"
+    print_info "You should import the client certificate to your device at first."
+    print_info "You could get ${name_user_ca}.p12 from ${Script_Dir}."
+    print_info "You could use ' bash `basename $0` gc ' to generate a new client-cert."
+    print_info "You could use ' bash `basename $0` rc ' to revoke an old client-cert."
 }
 
 function Outdate_Autoclean(){
@@ -995,21 +804,23 @@ function Outdate_Autoclean(){
         Client_EX_Date=`openssl x509 -noout -enddate -in ${My_One_Ca}/${My_One_Ca}-cert.pem | cut -d= -f2`
         Client_EX_Date=`date -d "${Client_EX_Date}" +%s`
         [ ${Client_EX_Date} -lt ${Today_Date} ] && {
-            mv ${My_One_Ca} -t revoke/
+            My_One_Ca_Now="${My_One_Ca}_$(date +%s)"
+            mv ${My_One_Ca} ${My_One_Ca_Now}
+            mv ${My_One_Ca_Now} -t revoke/
         }
     done
 }
 
 function revoke_userca(){
     check_ca_cert
-#get info
+#input info
     cd /etc/ocserv/CAforOC
     Outdate_Autoclean
     clear
     print_xxxx
     print_info "The following is the user list..."
     echo
-    ls -F|grep /|grep user|cut -d/ -f1
+    ls -F|grep /|grep user|cut -d/ -f1|color_line
     print_xxxx
     print_info "Which user do you want to revoke?"
     echo
@@ -1025,8 +836,9 @@ function revoke_userca(){
 #revoke   
     cat ${revoke_ca}/${revoke_ca}-cert.pem >>revoked.pem
     certtool --generate-crl --load-ca-privkey ca-key.pem --load-ca-certificate ca-cert.pem --load-certificate revoked.pem --template crl.tmpl --outfile ../crl.pem
-#show
-    mv ${revoke_ca} revoke/
+    revoke_ca_now="${revoke_ca}_$(date +%s)"
+    mv  ${revoke_ca} ${revoke_ca_now}
+    mv  ${revoke_ca_now} revoke/
     print_info "${revoke_ca} was revoked."
     echo    
 }
@@ -1043,15 +855,13 @@ function reinstall_ocserv(){
 
 function upgrade_ocserv(){    
     get_info_from_net
-    log_Start
-    Default_Ask "The latest is ${OC_version_latest} ,Input the version you want to upgrade?" "$OC_version_latest" "oc_version"
-    Default_Ask "The maximum number of routing table rules?" "200" "max_router"
+    Default_Ask "The latest is ${OC_version_latest} ,Input the version you want to upgrade." "$OC_version_latest" "oc_version"
+    # Default_Ask "The maximum number of routing table rules?" "200" "max_router"
     press_any_key
     stop_ocserv
     rm -f /etc/ocserv/profile.xml
     rm -f /usr/sbin/ocserv
     tar_ocserv_install
-    pgrep systemd-journal > /dev/null 2>&1 && systemctl daemon-reload > /dev/null 2>&1
     start_ocserv
     ps cax | grep ocserv > /dev/null 2>&1
     if [ $? -eq 0 ]; then
@@ -1084,7 +894,9 @@ function enable_both_login_open_ca(){
     echo
     print_info "The plain login and the certificate login are Okay~"
     print_info "The following is your certificate login info~"
+    echo
     get_new_userca_show
+    echo
 }
 
 function enable_both_login_open_plain(){
@@ -1102,10 +914,9 @@ function enable_both_login_open_plain(){
     print_info "The plain login and the certificate login are Okay~"
     print_info "The following is your plain login info~"
     echo
-    echo -e "\033[41;37m Your username is \033[0m" "$username"
-    echo -e "\033[41;37m Your password is \033[0m" "$password"
+    echo -e "\033[41;37mYour Username :\033[0m\t\t\t$username"
+    echo -e "\033[41;37mYour Password :\033[0m\t\t\t$password"
     echo
-    print_info "Enjoy it"
 }
 
 function help_ocservauto(){
@@ -1138,23 +949,36 @@ function help_ocservauto(){
 
 #已经测试过的系统
 function surport_Syscodename(){
-oc_D_V=$(lsb_release -c -s)
-[ "$oc_D_V" = "wheezy" ] && return 0
-[ "$oc_D_V" = "jessie" ] && return 0
-#[ "$oc_D_V" = "stretch" ] && return 0
-[ "$oc_D_V" = "trusty" ] && return 0
-[ "$oc_D_V" = "utopic" ] && return 0
-[ "$oc_D_V" = "vivid" ] && return 0
-#[ "$oc_D_V" = "wily" ] && return 0
-#TEST NEWER SYS
-#[ "$oc_D_V" = "$oc_D_V" ] && return 0
+    oc_D_V=$(lsb_release -c -s)
+    [ "$oc_D_V" = "wheezy" ] && return 0
+    [ "$oc_D_V" = "jessie" ] && return 0
+    #[ "$oc_D_V" = "stretch" ] && return 0
+    [ "$oc_D_V" = "trusty" ] && return 0
+    [ "$oc_D_V" = "utopic" ] && return 0
+    [ "$oc_D_V" = "vivid" ] && return 0
+    #[ "$oc_D_V" = "wily" ] && return 0
+    #TEST NEWER SYS 测试新系统，取消下面一行的注释。
+    #[ "$oc_D_V" = "$oc_D_V" ] && return 0
+###############################
+# # 另一种实现方式
+# D_V=( wheezy jessie trusty utopic vivid )
+# for DV in ${D_V[*]}
+# do
+# [ "$oc_D_V" = "$DV" ] && return 0
+# done
+###############################
 }
+
+#此处请不要改变
+Script_Dir="$(cd "$(dirname $0)"; pwd)"
+#此处请不要改变
+CONFIG_PATH_VARS="${Script_Dir}/vars_ocservauto"
+#此处请不要改变
+LOC_OC_CONF="/etc/ocserv/ocserv.conf"
 
 ##################################################################################################################
 #main                                                                                                            #
 ##################################################################################################################
-
-#install info
 clear
 echo "==============================================================================================="
 echo
@@ -1166,56 +990,66 @@ print_info " Help Info:  bash `basename $0` help"
 echo
 echo "==============================================================================================="
 
-#脚本所在文件夹 此处请不要改变
-Script_Dir="$(cd "$(dirname $0)"; pwd)"
-#fastmode vars 存放配置参数文件的绝对路径，快速安装模式可用
-#可以自定义
-CONFIG_PATH_VARS="${Script_Dir}/vars_ocservauto"
-#ocserv.conf 绝对路径，此处请不要改变
-LOC_OC_CONF="/etc/ocserv/ocserv.conf"
-#ocserv配置文件所在的网络文件夹位置，请勿轻易改变
+#ocserv配置文件所在的网络文件夹位置
+#如果fork的话，请修改为自己的网络地址
 NET_OC_CONF_DOC="https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/ocservauto"
 #推荐的默认版本
-Default_oc_version="0.10.4"
+Default_oc_version="0.10.6"
 #开启分组模式，每位用户都会分配到All组和Route组。
 #All走全局，Route将会绕过大陆。
 #证书以及用户名登录都会采取。
 #证书分组模式下，ios下anyconnect客户端有bug，请不要使用。
+#默认为n关闭，开启为y。
 open_two_group="n"
+#编译安装ocserv的额外选项
+#例如Extra_Options="--with-local-talloc --enable-local-libopts --without-pcl-lib  --without-http-parser --without-protobuf"
+#详细请参考./configure --help 或ocserv官网
+Extra_Options=""
 
 #Initialization step
 action=$1
 [  -z $1 ] && action=install
 case "$action" in
 install)
-    install_OpenConnect_VPN_server
+    log_Start
+    install_OpenConnect_VPN_server | tee -a ${Script_Dir}/ocinstall.log
     ;;
 fastmode | fm)
-    fast_install="y"
     [ ! -f $CONFIG_PATH_VARS ] && die "$CONFIG_PATH_VARS Not Found !"
+    fast_install="y"
     . $CONFIG_PATH_VARS
-    install_OpenConnect_VPN_server
+    log_Start
+    install_OpenConnect_VPN_server | tee -a ${Script_Dir}/ocinstall.log
+    ;;
+upgrade | ug)
+    log_Start
+    upgrade_ocserv | tee -a ${Script_Dir}/ocinstall.log
+    ;;
+reinstall | ri)
+    log_Start
+    reinstall_ocserv | tee -a ${Script_Dir}/ocinstall.log
+    ;;
+occ)
+    log_Start
+    install_Oneclientcer | tee -a ${Script_Dir}/ocinstall.log
     ;;
 getuserca | gc)
+    character_Test ${LOC_OC_CONF} 'auth = "plain' && {
+        character_Test ${LOC_OC_CONF} 'enable-auth = certificate' || {
+            die "You have to enable the the certificate login at first."
+        }
+    }
     get_new_userca
     get_new_userca_show
     ;;
 revokeuserca | rc)
     revoke_userca
     ;;
-upgrade | ug)
-    upgrade_ocserv
-    ;;
-reinstall | ri)
-    reinstall_ocserv
-    ;;
 pc)
     enable_both_login
     ;;
-occ)
-    install_Oneclientcer
-    ;;
 help | h)
+    clear
     help_ocservauto
     ;;
 *)
