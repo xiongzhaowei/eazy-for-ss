@@ -6,8 +6,6 @@ self_signed_ca='y'
 caname='ocvpn'
 ogname='ocvpn'
 coname='ocvpn'
-#最大路由表数目
-max_router='200'
 #tcp端口选择
 ocserv_tcpport_set='999'
 #是否只采用tcp模式 关闭udp端口
