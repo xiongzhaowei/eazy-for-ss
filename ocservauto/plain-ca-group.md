@@ -34,7 +34,7 @@ mkdir /etc/ocserv/config-per-group
 我们可以参考来自 https://github.com/humiaozuzu/ocserv-build 的一份优化好的路由表来完成分流，可以通过下面命令来配置
 
 ```shell
-wget https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/ocservauto/routerulers -O /etc/ocserv/config-per-group/Route
+wget https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/ocservauto/Route -O /etc/ocserv/config-per-group/Route
 ```
 
 然后创建一个空的All文件
