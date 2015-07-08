@@ -21,3 +21,6 @@ cat routes.conf >> /etc/ocserv/ocserv.conf
 ```shell
 sed -i '/^no-route/d' /etc/ocserv/ocserv.conf
 ```
+===========
+#WARN
+通过这个脚本产生的路由规则一般都是几千条，几乎没有实用价值。
