@@ -260,15 +260,17 @@ fi
 ps -ef|grep -v grep|grep -v ps|grep -i 'ss-server' > /dev/null 2>&1
 if [ $? -eq 0 ]; then 
     clear
-    echo ""
-    echo "Congratulations!Shadowsocks-libev start success!"
-    echo -e "Your Server IP: \033[41;37m ${IP} \033[0m"
-    echo -e "Your Server Port: \033[41;37m ${shadowsockspt} \033[0m"
-    echo -e "Your Password: \033[41;37m ${shadowsockspwd} \033[0m"
-    echo -e "Your Encryption Method: \033[41;37m ${shadowsocksem} \033[0m"
-    echo ""
+    echo 
+    echo "Congratulations!"
+    echo "Shadowsocks-libev start success!"
+    echo
+    echo -e "Your Server IP:\t\t\033[41;37m ${IP} \033[0m"
+    echo -e "Your Server Port:\t\033[41;37m ${shadowsockspt} \033[0m"
+    echo -e "Your Password:\t\t\033[41;37m ${shadowsockspwd} \033[0m"
+    echo -e "Your Encryption Method:\t\033[41;37m ${shadowsocksem} \033[0m"
+    echo 
     echo "Enjoy it!"
-    echo ""
+    echo 
     exit
 else
     echo "Shadowsocks-libev start failure!"
