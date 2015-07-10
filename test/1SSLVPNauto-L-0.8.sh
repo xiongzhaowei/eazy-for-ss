@@ -6,7 +6,7 @@
 #   Ocservauto For Debian Copyright (C) liyangyijie released under GNU GPLv2
 #   Ocservauto For Debian Is Based On SSLVPNauto v0.1-A1
 #   SSLVPNauto v0.1-A1 For Debian Copyright (C) Alex Fang frjalex@gmail.com released under GNU GPLv2
-#   Date: 2015-07-06
+#   Date: 2015-07-10
 #   Thanks For
 #   http://www.infradead.org/ocserv/
 #   https://www.stunnel.info  Travis Lee
