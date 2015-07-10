@@ -6,7 +6,7 @@
 #   Ocservauto For Debian Copyright (C) liyangyijie released under GNU GPLv2
 #   Ocservauto For Debian Is Based On SSLVPNauto v0.1-A1
 #   SSLVPNauto v0.1-A1 For Debian Copyright (C) Alex Fang frjalex@gmail.com released under GNU GPLv2
-#   Date: 2015-05-01
+#   Date: 2015-07-10
 #   Thanks For
 #   http://www.infradead.org/ocserv/
 #   https://www.stunnel.info  Travis Lee
@@ -266,7 +266,7 @@ function check_Required(){
 #install base-tools 
     print_info "Installing base-tools......"
     apt-get update  -qq
-    check_install "curl vim sudo gawk sed wget insserv nano" "curl vim sudo gawk sed wget insserv nano"
+    check_install "curl vim sudo gawk sed insserv nano" "curl vim sudo gawk sed insserv nano"
     check_install "dig lsb_release" "dnsutils lsb-release"
     insserv -s  > /dev/null 2>&1 || ln -s /usr/lib/insserv/insserv /sbin/insserv
     print_info "Get base-tools ok"
@@ -497,11 +497,19 @@ function tar_ocserv_install(){
     cd ocserv-$oc_version
 # #set route limit 设定路由规则最大限制
     # sed -i "s|\(#define MAX_CONFIG_ENTRIES \).*|\1$max_router|" src/vpn.h
+#0.10.6-fix
+    [ "$oc_version" = "0.10.6" ] && {
+        #http://git.infradead.org/ocserv.git/commitdiff/747346c7e6c56f91757b515dd20be6517a9e3b5c?hp=63fa6baa85b622ddabe60c147985280c54087332
+        sed -i 's|#ifdef __linux__|#if defined(__linux__) \&\&!defined(IPV6_PATHMTU)|' src/worker-vpn.c
+        sed -i '/\/\* for IPV6_PATHMTU \*\//d' src/worker-vpn.c
+        sed -i 's|# include <linux/in6.h>|# define IPV6_PATHMTU 61|' src/worker-vpn.c
+    }
     ./configure --prefix=/usr --sysconfdir=/etc $Extra_Options
     make -j"$(nproc)"
     make install
 #check install 检测编译安装是否成功
     [ ! -f /usr/sbin/ocserv ] && {
+        print_warn "Fail..."
         make clean
         die "Ocserv install failure,check ${Script_Dir}/ocinstall.log"
     }
@@ -771,8 +779,8 @@ function show_ocserv(){
 
 function check_ca_cert(){
     [ ! -f /usr/sbin/ocserv ] && die "Ocserv NOT Found !!!"
-    [ ! -f /etc/ocserv/CAforOC/ca-cert.pem ] && die "ca-cert.pem NOT Found !!!"
     [ ! -f /etc/ocserv/CAforOC/ca-key.pem ] && die "ca-key.pem NOT Found !!!"
+    [ ! -f /etc/ocserv/CAforOC/ca-cert.pem ] && die "ca-cert.pem NOT Found !!!"
 }
 
 function get_new_userca(){
