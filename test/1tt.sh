@@ -179,6 +179,8 @@ function check_install(){
 function install_OpenConnect_VPN_server(){
 #get base info and base tools
     check_Required
+#多网卡检测
+    check_If
 #custom-configuration or not 自定义安装与否
     fast_Default_Ask "Install ocserv with Custom Configuration?(y/n)" "n" "Custom_config_ocserv"
     clear && print_xxxx
@@ -247,6 +249,28 @@ function install_Oneclientcer(){
     print_warn "Ocserv start failure,ocserv is offline!"
     print_info "You could check ${Script_Dir}/ocinstall.log"
     fi
+}
+
+#多网卡检测
+function check_If(){
+    [ $Num_Gw != "1" ] && {
+        clear
+        echo
+        print_info "Which network interface you want to listen for ocserv?"
+        echo
+        all_Gw=`ip route show|sed -n 's/^default.* dev \([^ ]*\).*/\1/p'`
+        echo -e "\t\e[1;33mNum\tIF\tIP\e[0m"
+        for eGw in $all_Gw
+        do
+            num_eGw=`ip route show|sed -n 's/^default.* dev \([^ ]*\).*/\1/p'|grep -n $eGw|cut -d: -f1`
+            eIp=`ip route show|sed -n "s/.*$eGw.* src \([^ ]*\).*/\1/p"`
+            echo
+            echo -e "\t$num_eGw\t$eGw\t$eIp"
+        done
+        echo
+        fast_Default_Ask "Input the number." "1" "choice_If_Num"
+        choice_If="|sed -n ${choice_If_Num}p"
+    }
 }
 
 #环境检测以及基础工具检测安装
@@ -499,6 +523,7 @@ function tar_ocserv_install(){
     # sed -i "s|\(#define MAX_CONFIG_ENTRIES \).*|\1$max_router|" src/vpn.h
 #0.10.6-fix
     [ "$oc_version" = "0.10.6" ] && {
+        #http://git.infradead.org/ocserv.git/commitdiff/747346c7e6c56f91757b515dd20be6517a9e3b5c?hp=63fa6baa85b622ddabe60c147985280c54087332
         sed -i 's|#ifdef __linux__|#if defined(__linux__) \&\&!defined(IPV6_PATHMTU)|' src/worker-vpn.c
         sed -i '/\/\* for IPV6_PATHMTU \*\//d' src/worker-vpn.c
         sed -i 's|# include <linux/in6.h>|# define IPV6_PATHMTU 61|' src/worker-vpn.c
@@ -529,6 +554,10 @@ function tar_ocserv_install(){
     [ ! -f ocserv-up.sh ] && {
         wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv-up.sh
         chmod +x ocserv-up.sh
+        #多网卡设定
+        [ $Num_Gw != "1" ] && {
+            sed -i "s/\(gw_intf_oc=.*\/p'\)/\1$choice_If/" ocserv-up.sh
+        }
     }
     [ ! -f ocserv-down.sh ] && {
         wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv-down.sh
@@ -982,6 +1011,8 @@ Script_Dir="$(cd "$(dirname $0)"; pwd)"
 CONFIG_PATH_VARS="${Script_Dir}/vars_ocservauto"
 #此处请不要改变
 LOC_OC_CONF="/etc/ocserv/ocserv.conf"
+#出口网卡数量
+Num_Gw=`ip route show|sed -n 's/^default.* dev \([^ ]*\).*/\1/p'|wc -l`
 
 ##################################################################################################################
 #main                                                                                                            #
