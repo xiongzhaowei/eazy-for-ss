@@ -6,10 +6,10 @@
 ```
 ip route show|sed -n 's/^default.* dev \([^ ]*\).*/\1/p'
 ```
-编辑/etc/ocserv/ocserv.conf,取消ocserv.conf中下面两行的注释并修改为
+编辑/etc/ocserv/ocserv.conf,取消ocserv.conf中下面一行的注释并修改为
 ```
 connect-script = /etc/ocserv/Speeder_reload.sh
-disconnect-script = /etc/ocserv/Speeder_reload.sh
+#disconnect-script = /etc/ocserv/Speeder_reload.sh
 ```
 然后下载脚本，并加上可执行权限
 ```
