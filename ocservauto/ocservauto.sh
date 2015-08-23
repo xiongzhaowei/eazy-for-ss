@@ -1002,7 +1002,7 @@ echo "==========================================================================
 #如果fork的话，请修改为自己的网络地址
 NET_OC_CONF_DOC="https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/ocservauto"
 #推荐的默认版本
-Default_oc_version="0.10.6"
+Default_oc_version="0.10.7"
 #开启分组模式，每位用户都会分配到All组和Route组。
 #All走全局，Route将会绕过大陆。
 #证书以及用户名登录都会采取。
