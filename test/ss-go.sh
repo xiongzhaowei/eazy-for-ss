@@ -65,6 +65,7 @@ function Dependence_Install {
 }
 function Upgrade_SS {
     Latest_Version=`wget -qO- dl.chenyufei.info/shadowsocks/latest/|grep 'server.*x64'|sed 's|.*-\(.*\)\.gz</a>.*|\1|'`
+#uname -m|grep 64
     if [ `getconf WORD_BIT` = '32' ] && [ `getconf LONG_BIT` = '64' ] ; then
         wget -c http://dl.chenyufei.info/shadowsocks/latest/shadowsocks-server-linux64-$Latest_Version.gz
         gzip -d shadowsocks-server-linux64-$Latest_Version.gz
@@ -124,6 +125,7 @@ function Change_Profiles {
 }
 EOF
      supervisorctl reload
+     sleep 3
      Show_Result
 }
 ###########################
@@ -139,7 +141,10 @@ EOF
     }
     Change_Profiles && exit 0
 }
-Check_E && Dependence_Install && \
-Set_Sysctl && Upgrade_SS && \
-Set_Supervisor && Change_Profiles
+Check_E
+Dependence_Install
+Set_Sysctl
+Upgrade_SS
+Set_Supervisor
+Change_Profiles
 :
