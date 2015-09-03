@@ -125,7 +125,7 @@ function Change_Profiles {
 }
 EOF
      supervisorctl reload
-     sleep 3
+     sleep 1
      Show_Result
 }
 ###########################
