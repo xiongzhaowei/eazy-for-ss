@@ -1,5 +1,7 @@
 #!/bin/bash
 #mandrill api curl
+#Fullfill api-key and domian
+#bash mandrill.sh 'my.p12' '123@123.com'
 
 API_KEY=""
 DOMAIN=""
