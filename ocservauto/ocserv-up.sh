@@ -15,12 +15,11 @@ ocserv_ip4_work_mask=`sed -n 's/^ipv4-.*=[ \t]*//p' $OCSERV_CONFIG|sed 'N;s|\n|/
 
 # turn on NAT over default gateway and VPN
 if !(iptables-save -t nat | grep -q "$gw_intf_oc (ocserv)"); then
-#iptables -t nat -A POSTROUTING -s $ocserv_ip4_work_mask -o $gw_intf_oc -m comment --comment "$gw_intf_oc (ocserv)" -j MASQUERADE
-iptables -t nat -A POSTROUTING -m comment --comment "$gw_intf_oc (ocserv)" -j MASQUERADE
+iptables -t nat -A POSTROUTING -s $ocserv_ip4_work_mask ! -d $ocserv_ip4_work_mask -m comment --comment "$gw_intf_oc (ocserv)" -j MASQUERADE
 fi
 
 if !(iptables-save -t filter | grep -q "$gw_intf_oc (ocserv2)"); then
-iptables -A FORWARD -s $ocserv_ip4_work_mask -m comment --comment "$gw_intf_oc (ocserv2)" -j ACCEPT
+iptables -A FORWARD -d $ocserv_ip4_work_mask -m comment --comment "$gw_intf_oc (ocserv2)" -j ACCEPT
 fi
 
 if !(iptables-save -t filter | grep -q "$gw_intf_oc (ocserv3)"); then
@@ -34,7 +33,7 @@ if [ "$ocserv_udpport" != "" ]; then
 fi
 
 if !(iptables-save -t filter | grep -q "$gw_intf_oc (ocserv5)"); then
-iptables -A FORWARD  -m state --state RELATED,ESTABLISHED -m comment --comment "$gw_intf_oc (ocserv5)" -j ACCEPT
+iptables -A FORWARD  -s $ocserv_ip4_work_mask -m state --state RELATED,ESTABLISHED -m comment --comment "$gw_intf_oc (ocserv5)" -j ACCEPT
 fi
 
 # turn on MSS fix
