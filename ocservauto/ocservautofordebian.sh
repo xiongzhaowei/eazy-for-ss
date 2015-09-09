@@ -14,4 +14,4 @@ wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv-up.sh
 chmod +x ocserv-up.sh
 wget -c --no-check-certificate $NET_OC_CONF_DOC/ocserv-down.sh
 chmod +x ocserv-down.sh
-
+/etc/init.d/ocserv restart
