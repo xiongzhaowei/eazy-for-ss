@@ -68,13 +68,11 @@ function Upgrade_SS {
 #uname -m|grep 64
     if [ `getconf WORD_BIT` = '32' ] && [ `getconf LONG_BIT` = '64' ] ; then
         wget -c http://dl.chenyufei.info/shadowsocks/latest/shadowsocks-server-linux64-$Latest_Version.gz
-        gzip -d shadowsocks-server-linux64-$Latest_Version.gz
-        mv -f shadowsocks-server-linux64-$Latest_Version /usr/bin/ss-goserver
     else
         wget -c http://dl.chenyufei.info/shadowsocks/latest/shadowsocks-server-linux32-$Latest_Version.gz
-        gzip -d shadowsocks-server-linux32-$Latest_Version.gz
-        mv -f shadowsocks-server-linux32-$Latest_Version /usr/bin/ss-goserver
     fi
+    gzip -d shadowsocks-server*${Latest_Version}.gz
+    mv -f shadowsocks-server*${Latest_Version} /usr/bin/ss-goserver
     strip -s /usr/bin/ss-goserver
     chmod +x /usr/bin/ss-goserver
 }
@@ -84,6 +82,7 @@ function Set_Supervisor {
 command=/usr/bin/ss-goserver -c /etc/shadowsocks-go/config.json
 autostart=true
 autorestart=true
+#开启1000以内端口请将nobody修改为root，或有管理员权限的帐号
 user=nobody
 EOF
     echo 'ulimit -n 51200' >> /etc/default/supervisor
