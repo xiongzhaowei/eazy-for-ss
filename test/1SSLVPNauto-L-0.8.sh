@@ -326,9 +326,11 @@ function get_Custom_configuration(){
 
 function get_Custom_configuration_2(){
 #Which ocserv version to install 安装哪个版本的ocserv
-    fast_Default_Ask "$OC_version_latest is the latest,but default version is recommended.Which to choose?" "$Default_oc_version" "oc_version"
-# #set max router rulers 最大路由规则限制数目
-    # fast_Default_Ask "The maximum number of routing table rules?" "200" "max_router"
+    [ "$OC_version_latest" = "" ] && {
+        print_warn "Could not connect to the official website,download ocserv from github."
+    } || {
+        fast_Default_Ask "$OC_version_latest is the latest,but default version is recommended.Which to choose?" "$Default_oc_version" "oc_version"
+    }
 #which port to use for verification 选择验证端口
     fast_Default_Ask "Which port to use for verification?(Tcp-Port)" "999" "ocserv_tcpport_set"
 #tcp-port only or not 是否仅仅使用tcp端口，即是否禁用udp
@@ -380,7 +382,7 @@ function tar_lz4_install(){
     print_info "Installing lz4 from github"
     DEBIAN_FRONTEND=noninteractive apt-get -y -qq remove --purge liblz4-dev
     mkdir lz4
-    LZ4_VERSION=`curl "https://github.com/Cyan4973/lz4/releases/latest" | sed -n 's/^.*tag\/\(.*\)".*/\1/p'` 
+    LZ4_VERSION=`curl -s "https://github.com/Cyan4973/lz4/releases/latest" | sed -n 's/^.*tag\/\(.*\)".*/\1/p'` 
     curl -SL "https://github.com/Cyan4973/lz4/archive/$LZ4_VERSION.tar.gz" -o lz4.tar.gz
     tar -xf lz4.tar.gz -C lz4 --strip-components=1 
     rm lz4.tar.gz 
@@ -487,18 +489,27 @@ EOF
 #install ocserv 编译安装
 function tar_ocserv_install(){
     cd ${Script_Dir}
-# #default max route rulers
-    # max_router=${max_router:-200}
 #default version  默认版本
     oc_version=${oc_version:-${Default_oc_version}}
-    wget -c ftp://ftp.infradead.org/pub/ocserv/ocserv-$oc_version.tar.xz
+    [ "$OC_version_latest" = "" ] && {
+#可以换成自己的下载地址
+        oc_version='0.10.8'
+        wget -c https://github.com/fanyueciyuan/ocserv-backup/raw/master/$oc_version.tar.xz
+    } || {
+        wget -c ftp://ftp.infradead.org/pub/ocserv/ocserv-$oc_version.tar.xz
+    }
     tar xvf ocserv-$oc_version.tar.xz
     rm -rf ocserv-$oc_version.tar.xz
     cd ocserv-$oc_version
 # #set route limit 设定路由规则最大限制
+########todo 判断版本号码自动添加200条
+# #default max route rulers
+    # max_router=200
+    #echo $oc_version|cut -d. -f1
     # sed -i "s|\(#define MAX_CONFIG_ENTRIES \).*|\1$max_router|" src/vpn.h
 #0.10.6-fix
     [ "$oc_version" = "0.10.6" ] && {
+        #http://git.infradead.org/ocserv.git/commitdiff/747346c7e6c56f91757b515dd20be6517a9e3b5c?hp=63fa6baa85b622ddabe60c147985280c54087332
         sed -i 's|#ifdef __linux__|#if defined(__linux__) \&\&!defined(IPV6_PATHMTU)|' src/worker-vpn.c
         sed -i '/\/\* for IPV6_PATHMTU \*\//d' src/worker-vpn.c
         sed -i 's|# include <linux/in6.h>|# define IPV6_PATHMTU 61|' src/worker-vpn.c
@@ -600,7 +611,7 @@ function ca_login_clientcert(){
 #generate a client cert
     print_info "Generating a client cert..."
     cd /etc/ocserv/CAforOC
-    caname=`openssl x509 -noout -text -in ca-cert.pem|grep Subject|sed -n 's/.*CN=\([^/,]*\).*/\1/p'`
+    caname=`openssl x509 -noout -subject -in ca-cert.pem|sed -n 's/.*CN=\([^=]*\)\/.*/\1/p'`
     if [ "X${caname}" = "X" ]; then
         Default_Ask "Tell me your CA's name." "ocvpn" "caname"
     fi
@@ -862,8 +873,11 @@ function reinstall_ocserv(){
 
 function upgrade_ocserv(){    
     get_info_from_net
+    [ "$OC_version_latest" = "" ] && {
+    print_warn "Could not connect to the official website."
+    exit 1
+    }
     Default_Ask "The latest is ${OC_version_latest} ,Input the version you want to upgrade." "$OC_version_latest" "oc_version"
-    # Default_Ask "The maximum number of routing table rules?" "200" "max_router"
     press_any_key
     stop_ocserv
     rm -f /etc/ocserv/profile.xml
@@ -1001,7 +1015,7 @@ echo "==========================================================================
 #如果fork的话，请修改为自己的网络地址
 NET_OC_CONF_DOC="https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/ocservauto"
 #推荐的默认版本
-Default_oc_version="0.10.6"
+Default_oc_version="0.10.8"
 #开启分组模式，每位用户都会分配到All组和Route组。
 #All走全局，Route将会绕过大陆。
 #证书以及用户名登录都会采取。
