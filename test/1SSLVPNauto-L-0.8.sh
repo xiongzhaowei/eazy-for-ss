@@ -502,12 +502,6 @@ function tar_ocserv_install(){
     tar xvf ocserv-$oc_version.tar.xz
     rm -rf ocserv-$oc_version.tar.xz
     cd ocserv-$oc_version
-# #set route limit 设定路由规则最大限制
-########todo 判断版本号码自动添加200条
-# #default max route rulers
-    # max_router=200
-    #echo $oc_version|cut -d. -f1
-    # sed -i "s|\(#define MAX_CONFIG_ENTRIES \).*|\1$max_router|" src/vpn.h
 #0.10.6-fix
     [ "$oc_version" = "0.10.6" ] && {
         #http://git.infradead.org/ocserv.git/commitdiff/747346c7e6c56f91757b515dd20be6517a9e3b5c?hp=63fa6baa85b622ddabe60c147985280c54087332
