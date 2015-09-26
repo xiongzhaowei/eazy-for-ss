@@ -328,6 +328,7 @@ function get_Custom_configuration_2(){
 #Which ocserv version to install 安装哪个版本的ocserv
     [ "$OC_version_latest" = "" ] && {
         print_warn "Could not connect to the official website,download ocserv from github."
+        print_xxxx
     } || {
         fast_Default_Ask "$OC_version_latest is the latest,but default version is recommended.Which to choose?" "$Default_oc_version" "oc_version"
     }
@@ -494,7 +495,7 @@ function tar_ocserv_install(){
     [ "$OC_version_latest" = "" ] && {
 #可以换成自己的下载地址
         oc_version='0.10.8'
-        wget -c https://github.com/fanyueciyuan/ocserv-backup/raw/master/$oc_version.tar.xz
+        curl -SOL "https://github.com/fanyueciyuan/ocserv-backup/raw/master/ocserv-$oc_version.tar.xz"
     } || {
         wget -c ftp://ftp.infradead.org/pub/ocserv/ocserv-$oc_version.tar.xz
     }
