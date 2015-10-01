@@ -810,14 +810,13 @@ function get_new_userca_show(){
 
 function Outdate_Autoclean(){
     My_All_Ca=`ls -F|sed -n 's/\(user-.*\)\//\1/p'|sed ':a;N;s/\n/ /;ba;'`
-    Today_Date=`date`
-    Today_Date=`date -d "${Today_Date}" +%s`
+    Today_Date=`date +%s`
     for My_One_Ca in ${My_All_Ca}
     do
         Client_EX_Date=`openssl x509 -noout -enddate -in ${My_One_Ca}/${My_One_Ca}-cert.pem | cut -d= -f2`
         Client_EX_Date=`date -d "${Client_EX_Date}" +%s`
         [ ${Client_EX_Date} -lt ${Today_Date} ] && {
-            My_One_Ca_Now="${My_One_Ca}_$(date +%s)"
+            My_One_Ca_Now="${My_One_Ca}_${Today_Date}"
             mv ${My_One_Ca} ${My_One_Ca_Now}
             mv ${My_One_Ca_Now} -t revoke/
         }
@@ -869,8 +868,7 @@ function reinstall_ocserv(){
 function upgrade_ocserv(){    
     get_info_from_net
     [ "$OC_version_latest" = "" ] && {
-    print_warn "Could not connect to the official website."
-    exit 1
+    die "Could not connect to the official website."
     }
     Default_Ask "The latest is ${OC_version_latest} ,Input the version you want to upgrade." "$OC_version_latest" "oc_version"
     press_any_key
@@ -881,10 +879,10 @@ function upgrade_ocserv(){
     start_ocserv
     ps cax | grep ocserv > /dev/null 2>&1
     if [ $? -eq 0 ]; then
-    print_info "Your ocserv upgrade was successful!"
+        print_info "Your ocserv upgrade was successful!"
     else
-    print_warn "Ocserv start failure,ocserv is offline!"
-    print_info "You could use ' bash `basename $0` ri' to forcibly upgrade your ocserv."
+        print_warn "Ocserv start failure,ocserv is offline!"
+        print_info "You could use ' bash `basename $0` ri' to forcibly upgrade your ocserv."
     fi
 }
 
