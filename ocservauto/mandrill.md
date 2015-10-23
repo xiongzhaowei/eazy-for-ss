@@ -13,4 +13,4 @@ bash mandrill.sh 'my.p12' 'my-email@abc.com'
 
 #Mailgun
 
-使用mailigun的请查阅https://blog.qmz.me/zai-vpsshang-da-jian-anyconnect-vpnfu-wu-qi/
+使用mailigun的请查阅https://blog.qmz.me/2014/%E5%9C%A8VPS%E4%B8%8A%E6%90%AD%E5%BB%BAAnyconnect-VPN%E6%9C%8D%E5%8A%A1%E5%99%A8/
