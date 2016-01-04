@@ -26,6 +26,7 @@ print_info "Systemd status : $Systemd"
 print_info "Nginx status : $Nginx_DEB"
 mkdir -p /var/www/html > /dev/null 2>&1
 mkdir -p /var/lib/nginx > /dev/null 2>&1
+mkdir -p /var/log/nginx > /dev/null 2>&1
 mkdir -p /etc/nginx/{conf.d,sites-enabled} > /dev/null 2>&1
 mkdir -p /home/cache/{temp,path} > /dev/null 2>&1
 [ "$Nginx_DEB" = "y" ] && {
