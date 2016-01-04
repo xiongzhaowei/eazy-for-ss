@@ -23,7 +23,7 @@ print_info "Systemd status : $Systemd";print_info "Nginx status : $Nginx_DEB"
 [ "$Nginx_DEB" = "y" ] && {
 /etc/init.d/nginx stop
 echo nginx-* hold | dpkg --set-selections
-    }
+}
 #更新安装依赖
 apt-get update
 apt-get install -y tar unzip build-essential openssl git insserv sudo
@@ -66,7 +66,9 @@ systemctl enable nginx > /dev/null 2>&1 || insserv nginx > /dev/null 2>&1
 } || insserv nginx > /dev/null 2>&1
 [ ! -d /etc/nginx ] && mkdir /etc/nginx
 wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx.conf -O /etc/nginx/nginx.conf
+mkdir -p /home/cache/{temp,path};chown -R www-data:www-data /home/cache
 }
 make install
 wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx-google.conf -O /etc/nginx/conf.d/nginx-google.conf
+cd $Script_Dir
 exit 0
