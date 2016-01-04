@@ -11,29 +11,38 @@ LibreSSL_V=2.3.1
 Nginx_V=1.9.9
 #######################
 #base-func
-die(){ echo -e "\033[33mERROR: $1 \033[0m" > /dev/null 1>&2;exit 1;};print_info(){ echo -n -e '\e[1;36m';echo -n $1;echo -e '\e[0m';};print_xxxx(){ xXxX="#############################";echo;echo "$xXxX$xXxX$xXxX$xXxX";echo;};print_warn(){ echo -n -e '\033[41;37m';echo -n $1;echo -e '\033[0m';};Script_Dir="$(cd "$(dirname $0)"; pwd)"
+die(){ echo -e "\033[33mERROR: $1 \033[0m" > /dev/null 1>&2;exit 1;};print_info(){ echo -n -e '\e[1;36m';echo -n $1;echo -e '\e[0m';};print_warn(){ echo -n -e '\033[41;37m';echo -n $1;echo -e '\033[0m';};Script_Dir="$(cd "$(dirname $0)"; pwd)"
 ########################
 #main
 #测试环境
+[ $EUID -ne 0 ] && die 'Must be run by root user.'
+print_info "Root ok"
+[ ! -f /etc/debian_version ] && die "Must be run on a Debian-based system."
+print_info "Debian-based ok"
 Systemd="n" && Nginx_DEB="n"
 pgrep systemd-journal > /dev/null 2>&1 && Systemd="y"
+print_info "Systemd status : $Systemd"
 [ -e /etc/init.d/nginx ] && Nginx_DEB="y"
-print_info "Systemd status : $Systemd";print_info "Nginx status : $Nginx_DEB"
-[ ! -d /var/www/html ] && mkdir -p /var/www/html
+print_info "Nginx status : $Nginx_DEB"
+mkdir -p /var/www/html > /dev/null 2>&1
+mkdir -p /var/lib/nginx > /dev/null 2>&1
+mkdir -p /etc/nginx/{conf.d,sites-enabled} > /dev/null 2>&1
+mkdir -p /home/cache/{temp,path} > /dev/null 2>&1
 [ "$Nginx_DEB" = "y" ] && {
-/etc/init.d/nginx stop
-echo nginx-* hold | dpkg --set-selections
+    /etc/init.d/nginx stop
+    echo nginx-* hold | dpkg --set-selections
 }
 #更新安装依赖
 apt-get update
 apt-get install -y tar unzip build-essential openssl git sudo
 apt-get install -y zlib1g-dev libbz2-dev libpcre3 libpcre3-dev libssl-dev libperl-dev libxslt1-dev libgd2-xpm-dev libgeoip-dev libpam0g-dev libc6-dev
 apt-get install -y libc6 libgd2-xpm libgeoip1 libxslt1.1 libxml2 libexpat1 libossp-uuid16
-insserv -s  > /dev/null 2>&1 || ln -s /usr/lib/insserv/insserv /sbin/insserv
 apt-get clean
-#添加Nginx用户和组
+#添加用户修改权限
 cat /etc/group|grep -E '^www-data:' || sudo groupadd www-data
 cat /etc/shadow|grep -E '^www-data:' || sudo useradd -s /sbin/nologin -g www-data www-data
+chown -R www-data:www-data /home/cache
+chown -R www-data:www-data /var/www
 #编译安装
 mkdir -p NGINX/{libressl,Nginx}
 cd NGINX
@@ -58,22 +67,18 @@ cd Nginx
 make
 strip -s objs/nginx
 [ "$Nginx_DEB" = "y" ] && mv -T /usr/sbin/nginx  /usr/sbin/nginx_old_$(date +%s) || {
-wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx -O /etc/init.d/nginx
-chmod 755 /etc/init.d/nginx
-print_info "Enable nginx service to start during bootup."
-[ "$Systemd" = "y" ] && {
-#sudo update-rc.d nginx defaults
-#sudo update-rc.d -f nginx remove
-systemctl enable nginx > /dev/null 2>&1 || sudo update-rc.d nginx defaults > /dev/null 2>&1
-} || sudo update-rc.d nginx defaults > /dev/null 2>&1
-[ ! -d /etc/nginx ] && mkdir /etc/nginx
-wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx.conf -O /etc/nginx/nginx.conf
-mkdir -p /home/cache/{temp,path};chown -R www-data:www-data /home/cache
+    wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx -O /etc/init.d/nginx
+    chmod 755 /etc/init.d/nginx
+    print_info "Enable nginx service to start during bootup."
+    [ "$Systemd" = "y" ] && {
+#sudo update-rc.d nginx defaults;sudo update-rc.d -f nginx remove
+        systemctl enable nginx > /dev/null 2>&1 || sudo update-rc.d nginx defaults > /dev/null 2>&1
+    } || sudo update-rc.d nginx defaults > /dev/null 2>&1
 }
+[ -f /etc/nginx/nginx.conf ] && mv -T /etc/nginx/nginx.conf /etc/nginx/nginx.conf.old
+wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx.conf -O /etc/nginx/nginx.conf
 make install
-[ ! -d /var/lib/nginx ] && mkdir -p /var/lib/nginx
-[ ! -d /etc/nginx/conf.d/ ] && mkdir -p /etc/nginx/conf.d
-[ ! -d /etc/nginx/sites-enabled ] && mkdir -p /etc/nginx/sites-enabled
 wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx-google.conf -O /etc/nginx/conf.d/nginx-google.conf
 cd $Script_Dir
+print_warn "Edit /etc/nginx/conf.d/nginx-google.conf "
 exit 0
