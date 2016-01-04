@@ -7,6 +7,7 @@
 #curl -I http://www.yoursite.com
 #libressl和Nginx版本
 #LibreSSL_V=`wget -qO- http://www.libressl.org/ |sed -n 's/.*stable release is \([^<]*\).*/\1/p'`
+#Nginx_V=`wget -qO- 'http://nginx.org/en/CHANGES'|sed -n 's/^Changes.*nx \([^ ]*\).*/\1/p'|head -n1`
 LibreSSL_V=2.3.1
 Nginx_V=1.9.9
 #######################
@@ -55,7 +56,7 @@ git clone https://github.com/stogh/ngx_http_auth_pam_module.git
 git clone https://github.com/gnosek/nginx-upstream-fair.git
 git clone https://github.com/cuber/ngx_http_google_filter_module.git
 git clone https://github.com/arut/nginx-dav-ext-module.git
-git clone https://github.com/yaoweibin/ngx_http_substitutions_filter_module
+git clone https://github.com/yaoweibin/ngx_http_substitutions_filter_module.git
 cd Nginx
 ./configure --user=www-data --group=www-data --prefix=/usr/share/nginx --sbin-path=/usr/sbin/nginx --conf-path=/etc/nginx/nginx.conf --http-log-path=/var/log/nginx/access.log --error-log-path=/var/log/nginx/error.log --lock-path=/var/lock/nginx.lock --pid-path=/run/nginx.pid --http-client-body-temp-path=/var/lib/nginx/body --http-fastcgi-temp-path=/var/lib/nginx/fastcgi --http-proxy-temp-path=/var/lib/nginx/proxy --http-scgi-temp-path=/var/lib/nginx/scgi --http-uwsgi-temp-path=/var/lib/nginx/uwsgi --with-debug --with-pcre-jit --with-ipv6 --with-http_ssl_module --with-http_stub_status_module --with-http_realip_module --with-http_auth_request_module --with-http_gunzip_module --with-file-aio --with-threads --with-http_v2_module --with-http_addition_module --with-http_dav_module --with-http_geoip_module --with-http_gzip_static_module --with-http_image_filter_module --with-http_secure_link_module --with-http_sub_module --with-http_xslt_module --with-mail --with-mail_ssl_module \
 --add-module=../ngx_http_google_filter_module \
@@ -65,7 +66,7 @@ cd Nginx
 --add-module=../nginx-dav-ext-module \
 --with-openssl=../libressl \
 --with-ld-opt="-lrt"
-make
+make -j"$(nproc)"
 strip -s objs/nginx
 [ "$Nginx_DEB" = "y" ] && mv -T /usr/sbin/nginx  /usr/sbin/nginx_old_$(date +%s) || {
     wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx -O /etc/init.d/nginx
