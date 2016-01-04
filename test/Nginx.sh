@@ -67,8 +67,12 @@ systemctl enable nginx > /dev/null 2>&1 || insserv nginx > /dev/null 2>&1
 [ ! -d /etc/nginx ] && mkdir /etc/nginx
 wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx.conf -O /etc/nginx/nginx.conf
 mkdir -p /home/cache/{temp,path};chown -R www-data:www-data /home/cache
+
 }
 make install
+[ ! -d /var/lib/nginx ] && mkdir -p /var/lib/nginx
+[ ! -d /etc/nginx/conf.d/ ] && mkdir -p /etc/nginx/conf.d
+[ ! -d /etc/nginx/sites-enabled ] && mkdir -p /etc/nginx/sites-enabled
 wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx-google.conf -O /etc/nginx/conf.d/nginx-google.conf
 cd $Script_Dir
 exit 0
