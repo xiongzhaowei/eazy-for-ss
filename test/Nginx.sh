@@ -26,7 +26,7 @@ echo nginx-* hold | dpkg --set-selections
 }
 #更新安装依赖
 apt-get update
-apt-get install -y tar unzip build-essential openssl git insserv sudo
+apt-get install -y tar unzip build-essential openssl git sudo
 apt-get install -y zlib1g-dev libbz2-dev libpcre3 libpcre3-dev libssl-dev libperl-dev libxslt1-dev libgd2-xpm-dev libgeoip-dev libpam0g-dev libc6-dev
 apt-get install -y libc6 libgd2-xpm libgeoip1 libxslt1.1 libxml2 libexpat1 libossp-uuid16
 insserv -s  > /dev/null 2>&1 || ln -s /usr/lib/insserv/insserv /sbin/insserv
@@ -62,12 +62,13 @@ wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/ea
 chmod 755 /etc/init.d/nginx
 print_info "Enable nginx service to start during bootup."
 [ "$Systemd" = "y" ] && {
-systemctl enable nginx > /dev/null 2>&1 || insserv nginx > /dev/null 2>&1
-} || insserv nginx > /dev/null 2>&1
+#sudo update-rc.d nginx defaults
+#sudo update-rc.d -f nginx remove
+systemctl enable nginx > /dev/null 2>&1 || sudo update-rc.d nginx defaults > /dev/null 2>&1
+} || sudo update-rc.d nginx defaults > /dev/null 2>&1
 [ ! -d /etc/nginx ] && mkdir /etc/nginx
 wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx.conf -O /etc/nginx/nginx.conf
 mkdir -p /home/cache/{temp,path};chown -R www-data:www-data /home/cache
-
 }
 make install
 [ ! -d /var/lib/nginx ] && mkdir -p /var/lib/nginx
