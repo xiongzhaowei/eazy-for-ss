@@ -30,11 +30,10 @@ mkdir -p /var/{lib,log}/nginx > /dev/null 2>&1
 mkdir -p /etc/nginx/{conf.d,sites-enabled} > /dev/null 2>&1
 mkdir -p /home/cache/{temp,path} > /dev/null 2>&1
 [ "$Nginx_DEB" = "y" ] && {
-    /etc/init.d/nginx stop
     Installed_Nginx=$(echo `dpkg --get-selections | grep nginx` | sed 's/ hold//g;s/ install//g')
     for I_N in $Installed_Nginx
     do
-        echo $I_N hold | dpkg --set-selections
+        echo $I_N hold | dpkg --set-selections > /dev/null 2>&1
     done
 }
 #更新安装依赖
@@ -70,15 +69,18 @@ cd Nginx
 --with-openssl=../libressl \
 --with-ld-opt="-lrt"
 make -j"$(nproc)"
-strip -s objs/nginx
-[ "$Nginx_DEB" = "y" ] && mv -T /usr/sbin/nginx  /usr/sbin/nginx_old_$(date +%s) || {
+strip -s objs/nginx || die "Make Failed."
+[ "$Nginx_DEB" = "y" ] && {
+    /etc/init.d/nginx stop
+    mv -T /usr/sbin/nginx  /usr/sbin/nginx_old_$(date +%s)
+} || {
     wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx -O /etc/init.d/nginx
     chmod 755 /etc/init.d/nginx
     print_info "Enable nginx service to start during bootup."
     [ "$Systemd" = "y" ] && {
 #sudo update-rc.d nginx defaults;sudo update-rc.d -f nginx remove
         systemctl enable nginx > /dev/null 2>&1 || sudo update-rc.d nginx defaults > /dev/null 2>&1
-    } || sudo update-rc.d nginx defaults > /dev/null 2>&1
+        } || sudo update-rc.d nginx defaults > /dev/null 2>&1
 }
 [ -f /etc/nginx/nginx.conf ] && mv -T /etc/nginx/nginx.conf /etc/nginx/nginx.conf.old
 wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx.conf -O /etc/nginx/nginx.conf
