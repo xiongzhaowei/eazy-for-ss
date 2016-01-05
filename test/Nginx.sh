@@ -44,8 +44,8 @@ apt-get install -y zlib1g-dev libbz2-dev libpcre3 libpcre3-dev libssl-dev libper
 apt-get install -y libc6 libgd2-xpm libgeoip1 libxslt1.1 libxml2 libexpat1 libossp-uuid16
 apt-get clean
 #添加用户修改权限
-cat /etc/group|grep -E '^www-data:' || sudo groupadd www-data
-cat /etc/shadow|grep -E '^www-data:' || sudo useradd -s /sbin/nologin -g www-data www-data
+cat /etc/group|grep -E '^www-data:'  > /dev/null 2>&1 || sudo groupadd www-data
+cat /etc/shadow|grep -E '^www-data:'  > /dev/null 2>&1 || sudo useradd -s /sbin/nologin -g www-data www-data
 chown -R www-data:www-data /home/cache
 chown -R www-data:www-data /var/www
 #编译安装
@@ -83,7 +83,8 @@ strip -s objs/nginx
 [ -f /etc/nginx/nginx.conf ] && mv -T /etc/nginx/nginx.conf /etc/nginx/nginx.conf.old
 wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx.conf -O /etc/nginx/nginx.conf
 make install
-wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx-google.conf -O /etc/nginx/conf.d/nginx-google.conf
+[ -f /etc/nginx/conf.d/nginx-google.conf ] || wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx-google.conf -O /etc/nginx/conf.d/nginx-google.conf
+#sed -i 's/^/#/' /etc/nginx/conf.d/nginx-google.conf
 cd $Script_Dir
 print_warn "Edit /etc/nginx/conf.d/nginx-google.conf "
 exit 0
