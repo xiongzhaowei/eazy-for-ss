@@ -80,7 +80,7 @@ strip -s objs/nginx || die "Make Failed."
     [ "$Systemd" = "y" ] && {
 #sudo update-rc.d nginx defaults;sudo update-rc.d -f nginx remove
         systemctl enable nginx > /dev/null 2>&1 || sudo update-rc.d nginx defaults > /dev/null 2>&1
-        } || sudo update-rc.d nginx defaults > /dev/null 2>&1
+    } || sudo update-rc.d nginx defaults > /dev/null 2>&1
 }
 [ -f /etc/nginx/nginx.conf ] && mv -T /etc/nginx/nginx.conf /etc/nginx/nginx.conf.old
 wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx.conf -O /etc/nginx/nginx.conf
