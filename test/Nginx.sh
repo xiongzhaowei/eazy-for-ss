@@ -8,7 +8,7 @@
 #libressl和Nginx版本
 #LibreSSL_V=`wget -qO- http://www.libressl.org/ |sed -n 's/.*stable release is \([^<]*\).*/\1/p'`
 #Nginx_V=`wget -qO- 'http://nginx.org/en/CHANGES'|sed -n 's/^Changes.*nx \([^ ]*\).*/\1/p'|head -n1`
-LibreSSL_V=2.3.1
+LibreSSL_V=2.2.5
 Nginx_V=1.9.9
 #######################
 #base-func
