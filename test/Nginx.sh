@@ -26,13 +26,16 @@ print_info "Systemd status : $Systemd"
 [ -e /etc/init.d/nginx ] && Nginx_DEB="y"
 print_info "Nginx status : $Nginx_DEB"
 mkdir -p /var/www/html > /dev/null 2>&1
-mkdir -p /var/lib/nginx > /dev/null 2>&1
-mkdir -p /var/log/nginx > /dev/null 2>&1
+mkdir -p /var/{lib,log}/nginx > /dev/null 2>&1
 mkdir -p /etc/nginx/{conf.d,sites-enabled} > /dev/null 2>&1
 mkdir -p /home/cache/{temp,path} > /dev/null 2>&1
 [ "$Nginx_DEB" = "y" ] && {
     /etc/init.d/nginx stop
-    echo nginx-* hold | dpkg --set-selections
+    Installed_Nginx=$(echo `dpkg --get-selections | grep nginx` | sed 's/ hold//g;s/ install//g')
+    for I_N in $Installed_Nginx
+    do
+        echo $I_N hold | dpkg --set-selections
+    done
 }
 #更新安装依赖
 apt-get update
