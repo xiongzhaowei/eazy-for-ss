@@ -548,7 +548,7 @@ function tar_ocserv_install(){
     }
     [ ! -f dh.pem ] && {
         print_info "Perhaps generate DH parameters will take some time , please wait..."
-        certtool --generate-dh-params --sec-param high --outfile dh.pem
+        certtool --generate-dh-params --sec-param medium --outfile dh.pem
     }
     clear
     print_info "Ocserv install ok"
