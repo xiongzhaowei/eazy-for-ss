@@ -72,6 +72,7 @@ make -j"$(nproc)"
 strip -s objs/nginx || die "Make Failed."
 [ "$Nginx_DEB" = "y" ] && {
     /etc/init.d/nginx stop
+    sleep 2
     mv -T /usr/sbin/nginx  /usr/sbin/nginx_old_$(date +%s)
 } || {
     wget -c --no-check-certificate https://raw.githubusercontent.com/fanyueciyuan/eazy-for-ss/master/nginx/nginx -O /etc/init.d/nginx
