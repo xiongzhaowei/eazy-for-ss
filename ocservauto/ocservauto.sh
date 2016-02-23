@@ -461,7 +461,7 @@ EOF
             }
         }     
     }
-    oc_dependencies="openssl autogen gperf pkg-config make gcc m4 build-essential libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev libtalloc-dev $oc_add_dependencies"
+    oc_dependencies="openssl autogen gperf pkg-config make gcc m4 build-essential libgmp3-dev libwrap0-dev libpam0g-dev libdbus-1-dev libnl-route-3-dev libopts25-dev libnl-nf-3-dev libreadline-dev libpcl1-dev libtalloc-dev libev-dev liboath-dev $oc_add_dependencies"
     TEST_S=""
     Dependencies_install_onebyone   
 #install dependencies from wheezy-backports for debian wheezy
