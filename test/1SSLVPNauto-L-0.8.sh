@@ -417,6 +417,19 @@ function tar_radcli_install(){
     print_info "[ radcli ] ok"
 }
 
+function tar_freeradius_client_install(){
+    print_info "Installing freeradius-client-1.1.7"
+    DEBIAN_FRONTEND=noninteractive apt-get -y -qq remove --purge freeradius-client*
+    wget -c ftp://ftp.freeradius.org/pub/freeradius/freeradius-client-1.1.7.tar.gz
+    tar -zxf freeradius-client-1.1.7.tar.gz
+    cd freeradius-client-1.1.7
+    ./configure --prefix=/usr --sysconfdir=/etc
+    make -j"$(nproc)" && make install
+    cd ..
+    rm -rf freeradius-client*
+    print_info "[ freeradius-client ] ok"
+}
+
 function test_source_install(){
     [ "$1" = "n" ] && {
         echo "deb http://ftp.debian.org/debian $2 main contrib non-free" >> /etc/apt/sources.list.d/ocserv.list
@@ -480,8 +493,9 @@ EOF
     [ "$oc_D_V" = "utopic" ] && {
         test_source_install "$source_jessie" "jessie" "gnutls-bin"
     }
-#install radcli
-    tar_radcli_install
+#install freeradius
+#if you want to install radcli,use tar_radcli_install to replace the following line
+    tar_freeradius_client_install
 #install lz4
     tar_lz4_install
 #clean
