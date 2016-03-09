@@ -11,7 +11,7 @@ Mycer_PATH="${User_PATH}/.le/${My_Domain}/${My_Domain}.cer"
 Mykey_PATH="${User_PATH}/.le/${My_Domain}/${My_Domain}.key"
 Port=${Set_Port:-443}
 #install dep
-apt-get install --no-install-recommends -y wegt cron netcat curl sudo openssl \
+apt-get install --no-install-recommends -y wget cron netcat curl sudo openssl \
 ca-certificates bash-completion git supervisor
 #install le
 cd ~
