@@ -7,11 +7,12 @@ PassWord=
 Set_Port=
 #########################################################
 User_PATH=$(cd ~ ; echo `pwd`)
-Mycer_PATH=${User_PATH}/.le/${My_Domain}/${My_Domain}.cer
-Mykey_PATH=${User_PATH}/.le/${My_Domain}/${My_Domain}.key
+Mycer_PATH="${User_PATH}/.le/${My_Domain}/${My_Domain}.cer"
+Mykey_PATH="${User_PATH}/.le/${My_Domain}/${My_Domain}.key"
 Port=${Set_Port:-443}
 #install dep
-apt-get install  wegt cron netcat curl sudo openssl ca-certificates bash-completion git supervisor --no-install-recommends -y
+apt-get install --no-install-recommends -y wegt cron netcat curl sudo openssl \
+ca-certificates bash-completion git supervisor
 #install le
 cd ~
 git clone https://github.com/Neilpang/le.git
@@ -42,4 +43,3 @@ EOF
 /etc/init.d/supervisor stop
 sleep 1
 /etc/init.d/supervisor start
-
