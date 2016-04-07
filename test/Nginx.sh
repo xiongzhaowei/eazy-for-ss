@@ -8,8 +8,8 @@
 #libressl和Nginx版本
 #LibreSSL_V=`wget -qO- http://www.libressl.org/ |sed -n 's/.*stable release is \([^<]*\).*/\1/p'`
 #Nginx_V=`wget -qO- 'http://nginx.org/en/CHANGES'|sed -n 's/^Changes.*nx \([^ ]*\).*/\1/p'|head -n1`
-LibreSSL_V=2.2.5
-Nginx_V=1.9.9
+LibreSSL_V=2.3.3
+Nginx_V=1.9.14
 #######################
 #base-func
 die(){ echo -e "\033[33mERROR: $1 \033[0m" > /dev/null 1>&2;exit 1;};print_info(){ echo -n -e '\e[1;36m';echo -n $1;echo -e '\e[0m';};print_warn(){ echo -n -e '\033[41;37m';echo -n $1;echo -e '\033[0m';};Script_Dir="$(cd "$(dirname $0)"; pwd)"
