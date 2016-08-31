@@ -13,7 +13,7 @@ Port=${Set_Port:-443}
 apt-get install --no-install-recommends -y wget cron netcat curl sudo openssl \
 ca-certificates bash-completion git supervisor
 #install le
-wget - https://get.acme.sh | sh
+wget -O - https://get.acme.sh | sh
 . ~/.profile
 #get cer(The tcp 443 port MUST be free to listen)
 acme.sh --issue --tls -d ${My_Domain}
