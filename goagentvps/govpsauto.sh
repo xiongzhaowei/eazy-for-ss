@@ -18,19 +18,21 @@ wget -O - https://get.acme.sh | sh
 #get cer(The tcp 443 port MUST be free to listen)
 acme.sh --issue --tls -d ${My_Domain}
 # get govps
+mkdir -p /opt/goproxy-vps
 GV=`curl -sL https://github.com/phuslu/goproxy/releases |sed -n 's/.*<t.*vps.*-\([^<]*\)\.t.*/\1/p'`
-wget --no-check-certificate -c https://github.com/phuslu/goproxy/releases/download/goproxy/goproxy-vps_linux_amd64-${GV}.tar.bz2 -O /opt/govpsx64.tar.bz2
-cd /opt
+wget --no-check-certificate -c https://github.com/phuslu/goproxy/releases/download/goproxy/goproxy-vps_linux_amd64-${GV}.tar.bz2 -O /opt/goproxy-vps/govpsx64.tar.bz2
+cd /opt/goproxy-vps
 tar xf govpsx64.tar.bz2
-chmod +x govps
+chmod +x goproxy-vps
 #daemon by supervisor
 cat > /etc/supervisor/conf.d/govps.conf<< EOF
 [program:govps]
-command=/opt/govps -addr=":${Port}" -auth="${UserName}:${PassWord}" -certfile="${Mycer_PATH}" -keyfile="${Mykey_PATH}"
+command=/opt/goproxy-vps/goproxy-vps -addr=":${Port}" -auth="${UserName}:${PassWord}" -certfile="${Mycer_PATH}" -keyfile="${Mykey_PATH}"
 autostart=true
 autorestart=true
 user=root
 EOF
+
 /etc/init.d/supervisor stop
 sleep 1
 /etc/init.d/supervisor start
