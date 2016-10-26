@@ -61,7 +61,7 @@ EOF
 }
 function Dependence_Install {
     apt-get update
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -q gzip sudo nano sed vim gawk curl dnsutils apt-transport-https net-tools supervisor
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -q binutils gzip sudo nano sed vim gawk curl dnsutils apt-transport-https net-tools supervisor
 }
 function Upgrade_SS {
     Latest_Version=`curl -sL "https://github.com/shadowsocks/shadowsocks-go/releases/latest" | sed -n 's/^.*tag\/\(.*\)".*/\1/p'`
