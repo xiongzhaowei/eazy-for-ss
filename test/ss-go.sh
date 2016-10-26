@@ -64,12 +64,12 @@ function Dependence_Install {
     DEBIAN_FRONTEND=noninteractive apt-get install -y -q gzip sudo nano sed vim gawk curl dnsutils apt-transport-https net-tools supervisor
 }
 function Upgrade_SS {
-    Latest_Version=`wget -qO- dl.chenyufei.info/shadowsocks/latest/|grep 'server.*x64'|sed 's|.*-\(.*\)\.gz</a>.*|\1|'`
+    Latest_Version=`curl -sL "https://github.com/shadowsocks/shadowsocks-go/releases/latest" | sed -n 's/^.*tag\/\(.*\)".*/\1/p'`
 #uname -m|grep 64
     if [ `getconf WORD_BIT` = '32' ] && [ `getconf LONG_BIT` = '64' ] ; then
-        wget -c http://dl.chenyufei.info/shadowsocks/latest/shadowsocks-server-linux64-$Latest_Version.gz
+        wget -c https://github.com/shadowsocks/shadowsocks-go/releases/download/$Latest_Version/shadowsocks-server-linux64-$Latest_Version.gz
     else
-        wget -c http://dl.chenyufei.info/shadowsocks/latest/shadowsocks-server-linux32-$Latest_Version.gz
+        wget -c https://github.com/shadowsocks/shadowsocks-go/releases/download/$Latest_Version/shadowsocks-server-linux32-$Latest_Version.gz
     fi
     gzip -d shadowsocks-server*${Latest_Version}.gz
     mv -f shadowsocks-server*${Latest_Version} /usr/bin/ss-goserver
