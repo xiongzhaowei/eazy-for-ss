@@ -40,7 +40,9 @@ mkdir -p /home/cache/{temp,path} > /dev/null 2>&1
 apt-get update
 apt-get install -y tar unzip build-essential openssl git sudo
 apt-get install -y zlib1g-dev libbz2-dev libpcre3 libpcre3-dev libssl-dev libperl-dev libxslt1-dev libgd2-xpm-dev libgeoip-dev libpam0g-dev libc6-dev
-apt-get install -y libc6 libgd2-xpm libgeoip1 libxslt1.1 libxml2 libexpat1 libossp-uuid16
+apt-get install -y libc6 libgeoip1 libxslt1.1 libxml2 libexpat1 libossp-uuid16
+apt-get install -y libgd2-xpm
+apt-get install -y libgd2-xpm-dev
 apt-get clean
 #添加用户修改权限
 cat /etc/group|grep -E '^www-data:'  > /dev/null 2>&1 || sudo groupadd www-data
