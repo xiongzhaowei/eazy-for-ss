@@ -14,15 +14,16 @@ apt-get install --no-install-recommends -y wget cron netcat curl sudo openssl \
 ca-certificates bash-completion git supervisor
 #install le
 wget -O - https://get.acme.sh | sh
-. ~/.profile
+source ~/.profile
 #get cer(The tcp 443 port MUST be free to listen)
 acme.sh --issue --tls -d ${My_Domain}
 # get govps
 mkdir -p /opt/goproxy-vps
-GV=`curl -sL https://github.com/phuslu/goproxy/releases |sed -n 's/.*<t.*vps.*-\([^<]*\)\.t.*/\1/p'`
-wget --no-check-certificate -c https://github.com/phuslu/goproxy/releases/download/goproxy/goproxy-vps_linux_amd64-${GV}.tar.bz2 -O /opt/goproxy-vps/govpsx64.tar.bz2
+GV=`curl -sL https://github.com/phuslu/goproxy-ci/releases/latest |sed -n 's/.*<a.*vps.*-\([^<]*\)\.t.*/\1/p'`
+GCV=`curl -s https://github.com/phuslu/goproxy-ci/releases/latest |sed -n 's/.*tag\/\([^"]*\).*/\1/p'`
+wget --no-check-certificate -c https://github.com/phuslu/goproxy-ci/releases/download/${GCV}/goproxy-vps_linux_amd64-${GV}.tar.xz -O /opt/goproxy-vps/govpsx64.tar.xz
 cd /opt/goproxy-vps
-tar xf govpsx64.tar.bz2
+tar xf govpsx64.tar.xz
 chmod +x goproxy-vps
 #daemon by supervisor
 cat > /etc/supervisor/conf.d/govps.conf<< EOF
