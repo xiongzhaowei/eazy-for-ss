@@ -8,8 +8,8 @@
 #libressl和Nginx版本
 #LibreSSL_V=`wget -qO- http://www.libressl.org/ |sed -n 's/.*stable release is \([^<]*\).*/\1/p'`
 #Nginx_V=`wget -qO- 'http://nginx.org/en/CHANGES'|sed -n 's/^Changes.*nx \([^ ]*\).*/\1/p'|head -n1`
-LibreSSL_V=2.3.3
-Nginx_V=1.9.14
+LibreSSL_V=2.5.1
+Nginx_V=1.11.9
 #######################
 #base-func
 die(){ echo -e "\033[33mERROR: $1 \033[0m" > /dev/null 1>&2;exit 1;};print_info(){ echo -n -e '\e[1;36m';echo -n $1;echo -e '\e[0m';};print_warn(){ echo -n -e '\033[41;37m';echo -n $1;echo -e '\033[0m';};Script_Dir="$(cd "$(dirname $0)"; pwd)"
@@ -57,7 +57,8 @@ wget -c http://nginx.org/download/nginx-${Nginx_V}.tar.gz
 tar xf libressl-${LibreSSL_V}.tar.gz -C libressl --strip-components=1
 tar xf nginx-${Nginx_V}.tar.gz -C Nginx --strip-components=1
 git clone https://github.com/stogh/ngx_http_auth_pam_module.git
-git clone https://github.com/gnosek/nginx-upstream-fair.git
+#git clone https://github.com/gnosek/nginx-upstream-fair.git
+git clone https://github.com/itoffshore/nginx-upstream-fair.git
 git clone https://github.com/cuber/ngx_http_google_filter_module.git
 git clone https://github.com/arut/nginx-dav-ext-module.git
 git clone https://github.com/yaoweibin/ngx_http_substitutions_filter_module.git
