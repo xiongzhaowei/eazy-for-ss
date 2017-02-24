@@ -36,12 +36,13 @@ e6fa4bb86608eb4c532ad939cacea2f07886f0f9d0c07e7e67d0729ab67e781d
 设定tap，开启转发，将9000到19000端口的流量都转发到镜像系统中去。
  
 ```shell
+D_I=`ip route show 0/0 | sort -k 7 | head -n 1 | sed -n 's/^default.* dev \([^ ]*\).*/\1/p'`
 sudo ip tuntap add tap0 mode tap  
 sudo ip addr add 10.0.0.1/24 dev tap0  
 sudo ip link set tap0 up  
-sudo iptables -P FORWARD ACCEPT  
+sudo iptables -P FORWARD ACCEPT
 sudo iptables -t nat -A POSTROUTING  -j MASQUERADE
-sudo iptables -t nat -A PREROUTING  -p tcp --dport 9000:19000 -j DNAT --to-destination 10.0.0.2
+sudo iptables -t nat -A PREROUTING -i ${D_I} -p tcp --dport 9000:19000 -j DNAT --to-destination 10.0.0.2
 ```
 
 最后开启镜像，
