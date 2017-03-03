@@ -230,3 +230,4 @@ Last
 nohup ./vmlinux root=/dev/ubda ubd0=alpine_bbr_ss_swap.img rw eth0=slirp,,/usr/bin/slirp-fullbolt mem=64m &
 
 ```
+No iptables.No NAT.
