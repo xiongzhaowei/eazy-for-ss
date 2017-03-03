@@ -184,4 +184,49 @@ reboot
 
 ===
 
+## SLiRP
+TUN/TAP are just not available for some reason.
+Use SLiRP.
+```
+apt-get intall slirp
+```
+ICMP traffic (ping) from guest to the internet is not supported.
+You could ping your vps'pub ip to test your net.
+you may up net by
+```
+ifconfig eth0 down
+ifconfig eth0 10.0.2.15 up
+route add default gw 10.0.2.15
+ping xx.xx.xx.xx
+```
+or edit /etc/network/interfaces
+```
+auto lo
+iface lo inet loopback
 
+auto eth0
+iface eth0 inet static
+        address 10.0.2.15
+        netmask 255.255.255.255
+        gateway 10.0.2.15
+
+```
+And 
+```
+ifconfig eth0 down
+/etc/init.d/networking restart
+ping xx.xx.xx.xx
+```
+/usr/bin/slirp is too slow,use /usr/bin/slirp-fullbolt.
+Redirect inside port to outside port,slirp-fullbolt -S "redir 8042 80", in8042 bindto out80.
+But you had to edit  ~/.slirprc,if you want to use it on UML.
+```
+redir 9988 9988
+redir 9000 9000
+.... 
+```
+Last 
+```
+nohup ./vmlinux root=/dev/ubda ubd0=alpine_bbr_ss_swap.img rw eth0=slirp,,/usr/bin/slirp-fullbolt mem=64m &
+
+```
