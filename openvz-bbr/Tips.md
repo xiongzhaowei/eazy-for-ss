@@ -231,3 +231,28 @@ ifconfig eth0 down
 ping xx.xx.xx.xx
 ```
 
+===
+
+## Host file access
+Just cmd in UML
+```shell
+mount none /mnt/home -t hostfs -o /home/uml
+```
+Or edit fstab in UML
+```shell
+cat /etc/fstab
+# 
+# /etc/fstab: static file system information
+#
+# <file system>	<dir>	<type>	<options>	<dump>	<pass>
+LABEL=ROOT	/	            auto	defaults	1	1
+none        /mnt/home       hostfs  defaults    1   1
+```
+In host 
+```shell
+mkdir /home/uml
+```
+Then 
+```shell
+nohup ./vmlinux ubda=alpine_mini rw hostfs=/home/uml eth0=tuntap,tap0 mem=64m &
+```
