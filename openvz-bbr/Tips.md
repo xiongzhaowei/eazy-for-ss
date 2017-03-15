@@ -245,8 +245,8 @@ cat /etc/fstab
 # /etc/fstab: static file system information
 #
 # <file system>	<dir>	<type>	<options>	<dump>	<pass>
-LABEL=ROOT	/	            auto	defaults	1	1
-none        /mnt/home       hostfs  defaults    1   1
+LABEL=ROOT	/			auto	defaults	1	1
+none		/mnt/home	hostfs	defaults	1	1
 ```
 In host 
 ```shell
