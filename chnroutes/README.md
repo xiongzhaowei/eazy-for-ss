@@ -1,7 +1,7 @@
-#WIKI
+# WIKI
 https://github.com/fivesheep/chnroutes/wiki
 ===========
-#EXTRA
+# EXTRA
 脚本增加了对ocserv(>=0.9.2)的支持，在编译安装时建议将路由规则最大数目修改到6000
 
 如下使用
@@ -22,5 +22,5 @@ cat routes.conf >> /etc/ocserv/ocserv.conf
 sed -i '/^no-route/d' /etc/ocserv/ocserv.conf
 ```
 ===========
-#WARN
+# WARN
 通过这个脚本产生的路由规则一般都是几千条，几乎没有实用价值。

@@ -1,4 +1,4 @@
-##SHM BUG
+## SHM BUG
 ```
 Checking that ptrace can change system call numbers...OK
 Checking syscall emulation patch for ptrace...OK
@@ -15,7 +15,7 @@ shm    /dev/shm        tmpfs    nodev,nosuid                0       0
 
 ===
 
-##UML CONFIG
+## UML CONFIG
 ```
 UML-specific options 
     ==> [*] Force a static link 
@@ -37,7 +37,7 @@ Device Drivers
 
 ===
 
-##REMAKE
+## REMAKE
 
 Host
 ```
