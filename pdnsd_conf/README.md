@@ -1,8 +1,8 @@
-##What
+## What
 These are pdnsd's profiles.You cloud use these configurations to build a public dns server. 
-##How
+## How
 Well,Just need to overwrite the old one.
-##Additional information
+## Additional information
 About China's domains, we could get newer info from
 
 https://github.com/felixonmars/dnsmasq-china-list

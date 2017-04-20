@@ -1,4 +1,4 @@
-##Ocservauto For Debian 0.8
+## Ocservauto For Debian 0.8
 
 This script may help you setup your own openconnect_server in debian(>=7),ubuntu(>=14.04).
 
@@ -6,7 +6,7 @@ This script may help you setup your own openconnect_server in debian(>=7),ubuntu
 
 ============
 
-##USAGE
+## USAGE
 ```shell
 apt-get update
 apt-get upgrade
@@ -29,7 +29,7 @@ bash ocservauto.sh h
 
 ============
 
-##LICENCE
+## LICENCE
 Ocservauto For Debian Copyright (C) liyangyijie released under GNU GPLv2
 
 Ocservauto For Debian Is Based On SSLVPNauto v0.1-A1

@@ -1,11 +1,11 @@
-##OpenVZ-TCP_BBR-by-Alpine_Linux
+## OpenVZ-TCP_BBR-by-Alpine_Linux
 
 在OpenVZ（须TUN/TAP）或者KVM等环境上通过UML（User Mode Linux）方式，实现BBR加速。
 已经制作好了Alpine_Linux的镜像，内置shadowsocks-go、vi以及开启swap。
 
 ============
 
-##简要步骤
+## 简要步骤
 首先要制作vmlinux，在debian_8下对于4.9.11内核，可用我的配置。
 
 ```shell
