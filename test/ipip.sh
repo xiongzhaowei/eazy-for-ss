@@ -1,7 +1,16 @@
 #!/bin/bash
-MI=""
+function Ip_Check(){
+    local IP_TMP="$1"
+    if ( echo "$IP_TMP"|egrep -q \
+    '^((2[0-4][0-9]|25[0-5]|[01]?[0-9][0-9]?)\.){3}(2[0-4][0-9]|25[0-5]|[01]?[0-9][0-9]?)$' )
+    then
+        return 0
+    else
+        return 1
+    fi
+}
 MI="$1"
-[ "$MI" = "" ] && MI=`wget -qO- ipip.net|sed -n 's|<.*IP：\([^<]*\).*|\1|p'`
+Ip_Check "$MI" || MI=`curl -sL www.ipip.net|sed -n 's|<.*IP：\([^<]*\).*|\1|p'`
 MI=$(echo $MI)
 Ip_Info=`wget -qO- freeapi.ipip.net/$MI`
 Ia=`echo $Ip_Info|cut -d'"' -f2`
