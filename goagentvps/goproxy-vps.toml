@@ -9,8 +9,8 @@ daemon_stderr = "./goproxy-vps.log"
 #本地http代理监听端口
 listen = ":8087"
 #HTTP2模式
-#parent_proxy = "https+h2://mc.8932.pw"
+#parent_proxy = "https+h2://"
 #HTTPS模式
-#parent_proxy = "https://mc.8932.pw"
+#parent_proxy = "https://"
 #QUIC模式，相当于ss+kcptun
-parent_proxy = "quic://mc.8932.pw"
+parent_proxy = "quic://"
