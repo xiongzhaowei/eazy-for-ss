@@ -1,4 +1,3 @@
-#这是作为客户端的配置
 [default]
 log_level = 2
 reject_nil_sni = false
@@ -6,11 +5,7 @@ daemon_stderr = "./goproxy-vps.log"
 
 
 [http]
-#本地http代理监听端口
 listen = ":8087"
-#HTTP2模式
 #parent_proxy = "https+h2://"
-#HTTPS模式
 #parent_proxy = "https://"
-#QUIC模式，相当于ss+kcptun
-parent_proxy = "quic://"
+parent_proxy = "quic://my.dot"
