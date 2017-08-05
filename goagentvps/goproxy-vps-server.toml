@@ -1,0 +1,9 @@
+[default]
+log_level = 2
+reject_nil_sni = false
+daemon_stderr = "/dev/null"
+
+[[http2]]
+listen = ":443"
+server_name = ["my.dot"]
+proxy_fallback = "http://127.0.0.1:80"
