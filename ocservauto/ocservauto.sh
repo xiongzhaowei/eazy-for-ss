@@ -304,7 +304,7 @@ function get_info_from_net(){
     if [ $? -ne 0 -o -z $ocserv_hostname ]; then
         ocserv_hostname=`dig +short +tcp myip.opendns.com @resolver1.opendns.com`
     fi
-    OC_version_latest=$(curl -s "http://www.infradead.org/ocserv/download.html" | sed -n 's/^.*version is <b>\(.*$\)/\1/p')
+    OC_version_latest=$(curl -sL "http://ocserv.gitlab.io/www/download.html" | sed -n 's/^.*version is <b>\(.*$\)/\1/p')
 }
 
 function get_Custom_configuration(){
