@@ -966,7 +966,7 @@ function surport_Syscodename(){
     oc_D_V=$(lsb_release -c -s)
     [ "$oc_D_V" = "wheezy" ] && return 0
     [ "$oc_D_V" = "jessie" ] && return 0
-    #[ "$oc_D_V" = "stretch" ] && return 0
+    [ "$oc_D_V" = "stretch" ] && return 0
     [ "$oc_D_V" = "trusty" ] && return 0
     [ "$oc_D_V" = "utopic" ] && return 0
     [ "$oc_D_V" = "vivid" ] && return 0
