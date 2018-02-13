@@ -201,7 +201,11 @@ function install_OpenConnect_VPN_server(){
 #install ocserv 编译安装软件
     tar_ocserv_install
 #make self-signd server-ca 制作服务器自签名证书
-    [ "$self_signed_ca" = "y" ] && make_ocserv_ca
+    if [ "$self_signed_ca" = "y" ]; then
+        make_ocserv_ca
+    else
+        make_letsencrypt_ca
+    fi
 #make a client cert 若证书登录则制作客户端证书
     [ "$ca_login" = "y" ] && {
         [ "$self_signed_ca" = "y" ] && {
@@ -552,6 +556,30 @@ function tar_ocserv_install(){
     }
     clear
     print_info "Ocserv install ok"
+}
+
+function make_letsencrypt_ca(){
+    print_info "Generating Let's Encrypt CA, Your domain name must be specified as the IP address of this server..."
+    
+    #all in one doc
+    cd /etc/ocserv/CAforOC
+    #不太明白原作者为什么要定义个新变量，但感觉不这么做可能有坑。
+    fqdnname=${fqdnname:-$ocserv_hostname}
+
+    wget https://raw.githubusercontent.com/certbot/certbot/master/certbot-auto --no-check-certificate
+    chmod +x certbot-auto
+    #生成证书必须要写联系人邮箱，此处随便填一个，假定为 admin@domain.com 的形式。
+    ./certbot-auto -n certonly --standalone --agree-tos --email admin@$fqdnname -d $fqdnname
+
+    if [ -f /etc/letsencrypt/archive/$fqdnname ]; then
+    #创建软连接，此后所有逻辑与自签名证书相同。
+    ln -s /etc/letsencrypt/archive/$fqdnname/fullchain1.pem /etc/ocserv/server-cert.pem
+    ln -s /etc/letsencrypt/archive/$fqdnname/privkey1.pem /etc/ocserv/server-key.pem
+    self_signed_ca="y"
+    fi
+
+    #证书生成完成，但此处有个假设，域名必须指向当前服务器，否则证书会创建失败。
+    print_info "Let's Encrypt CA for ocserv ok"
 }
 
 function make_ocserv_ca(){
